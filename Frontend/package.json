@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@types/xlsx": "^0.0.35",
+    "react-to-print": "^3.1.0",
+    "sonner": "^2.0.3",
+    "xlsx": "^0.18.5"
+  }
+}

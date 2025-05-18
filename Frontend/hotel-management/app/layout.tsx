@@ -1,0 +1,30 @@
+import { SidebarProvider } from "@/components/sidebar-provider"
+import "./globals.css"
+import { AuthProvider } from "@/lib/auth-context"
+import { Toaster } from "sonner"
+
+export const metadata = {
+  title: 'Hotel Management',
+  description: 'Hotel Management System',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className="min-h-screen bg-gray-50">
+        <AuthProvider>
+          <SidebarProvider>
+            <div className="flex min-h-screen">
+              {children}
+            </div>
+            <Toaster position="top-right" richColors />
+          </SidebarProvider>
+        </AuthProvider>
+      </body>
+    </html>
+  )
+}

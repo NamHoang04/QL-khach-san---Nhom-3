@@ -1,0 +1,2 @@
+ĐÂY LÀ CODE DÙNG CHUNG NÊN HÃY CHUYỂN QUA NHÁNH KHÁC ĐỂ LẬP TRÌNH ( KHI NÀO FINAL HÃY PUSH LÊN NHÁNH MAIN NÀY! )
+copyright by Nam Hoangg
