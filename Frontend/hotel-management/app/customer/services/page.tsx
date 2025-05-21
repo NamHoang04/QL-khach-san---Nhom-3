@@ -16,7 +16,8 @@ import {
   ChevronLeft,
   CheckCircle,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Heart
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useSaved } from "@/lib/saved-context"
 
 interface Service {
   id: number
@@ -65,6 +67,7 @@ export default function ServicesPage() {
   const [selectedBookingId, setSelectedBookingId] = useState<string>("")
   const [bookings, setBookings] = useState<Array<{id: string | number, roomName: string}>>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
+  const { isSavedService, saveService, removeService } = useSaved()
 
   // Service categories
   const categories = [
@@ -211,6 +214,23 @@ export default function ServicesPage() {
       fetchActiveBookings()
     } else {
       setDialogOpen(true)
+    }
+  }
+
+  // Toggle save service
+  const toggleSaveService = (service: Service, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    
+    // Ensure we have a numeric ID
+    const serviceId = typeof service.id === 'string' ? parseInt(service.id, 10) : service.id
+    
+    if (isSavedService(serviceId)) {
+      removeService(serviceId)
+    } else {
+      saveService(service)
     }
   }
   
@@ -419,6 +439,16 @@ export default function ServicesPage() {
                     <span className="text-blue-600 font-medium">Hình ảnh dịch vụ</span>
                   </div>
                 )}
+                {/* Save button */}
+                <button 
+                  onClick={(e) => toggleSaveService(service, e)}
+                  className="absolute top-2 left-2 p-1.5 bg-white/80 rounded-full hover:bg-red-50 transition-colors"
+                  aria-label={isSavedService(service.id) ? "Xóa khỏi danh sách yêu thích" : "Lưu vào danh sách yêu thích"}
+                >
+                  <Heart 
+                    className={`h-5 w-5 ${isSavedService(service.id) ? "fill-red-500 text-red-500" : "text-gray-500"}`} 
+                  />
+                </button>
               </div>
               <div className="p-5">
                 <div className="flex justify-between">
@@ -436,7 +466,6 @@ export default function ServicesPage() {
                     className="bg-blue-600 hover:bg-blue-700"
                     onClick={() => handleBookService(service)}
                   >
-
                     Đặt ngay
                   </Button>
                 </div>
