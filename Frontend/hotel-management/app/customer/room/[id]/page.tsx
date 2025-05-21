@@ -14,7 +14,8 @@ import {
   Thermometer,
   Utensils,
   PanelTop,
-  ChevronLeft
+  ChevronLeft,
+  Send
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -28,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
 
 // Sample room data - in a real app, this would be fetched from an API
 const roomsData = [
@@ -37,9 +39,9 @@ const roomsData = [
     type: "deluxe",
     images: ["/room-1-1.jpg", "/room-1-2.jpg", "/room-1-3.jpg", "/room-1-4.jpg"],
     price: 1200000,
-    discountedPrice: 960000, // With 20% discount
+    discountedPrice: 960000,
     rating: 4.8,
-    reviews: 124,
+    reviews: 5,
     capacity: 2,
     beds: "1 giường King-size",
     size: "35m²",
@@ -60,8 +62,75 @@ const roomsData = [
       children: "Trẻ em dưới 6 tuổi được ở miễn phí khi dùng chung giường với người lớn.",
       pets: "Không cho phép vật nuôi.",
       smoking: "Không hút thuốc.",
-    }
+    },
+    userReviews: [
+      {
+        id: "1",
+        userName: "Nguyễn Văn A",
+        avatar: "/avatars/user1.jpg",
+        rating: 5,
+        date: "2023-12-15",
+        comment: "Phòng rất đẹp và sạch sẽ, tầm nhìn ra biển tuyệt vời. Nhân viên phục vụ nhiệt tình và chuyên nghiệp.",
+        images: ["/review-1-1.jpg", "/review-1-2.jpg"]
+      },
+      {
+        id: "2",
+        userName: "Trần Thị B",
+        avatar: "/avatars/user2.jpg",
+        rating: 4,
+        date: "2023-11-20",
+        comment: "Phòng rộng rãi, tiện nghi đầy đủ. Bữa sáng ngon. Điểm trừ là hơi ồn vào buổi tối.",
+        images: []
+      },
+      {
+        id: "3",
+        userName: "Lê Văn C",
+        avatar: "/avatars/user3.jpg",
+        rating: 5,
+        date: "2023-10-05",
+        comment: "Một trong những phòng khách sạn tốt nhất mà tôi từng ở. Sạch sẽ, thoáng mát với tầm nhìn tuyệt đẹp.",
+        images: ["/review-3-1.jpg"]
+      },
+      {
+        id: "4",
+        userName: "Phạm Thị D",
+        avatar: "/avatars/user4.jpg",
+        rating: 4.5,
+        date: "2023-09-12",
+        comment: "Phòng tắm rất sang trọng, giường ngủ êm ái. Wifi mạnh, nhân viên thân thiện.",
+        images: []
+      },
+      {
+        id: "5",
+        userName: "Hoàng Văn E",
+        avatar: "/avatars/user5.jpg",
+        rating: 4,
+        date: "2023-08-25",
+        comment: "Vị trí đẹp, phòng sạch sẽ. Bữa sáng phong phú. Tuy nhiên điều hòa hơi yếu.",
+        images: ["/review-5-1.jpg", "/review-5-2.jpg"]
+      }
+    ]
   },
+]
+
+// Add sample booking history data to check if user has booked this room
+const userBookingHistory = [
+  {
+    id: "booking1",
+    userId: "user123",
+    roomId: "1",
+    checkInDate: "2023-06-15",
+    checkOutDate: "2023-06-18",
+    status: "completed"
+  },
+  {
+    id: "booking2",
+    userId: "user123",
+    roomId: "3",
+    checkInDate: "2023-08-10",
+    checkOutDate: "2023-08-15",
+    status: "completed"
+  }
 ]
 
 export default function RoomDetailPage() {
@@ -77,6 +146,19 @@ export default function RoomDetailPage() {
   const [checkOutDate, setCheckOutDate] = useState("")
   const [guests, setGuests] = useState("2")
   const [showFullDescription, setShowFullDescription] = useState(false)
+  
+  // New state for review form
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState("")
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  
+  // Mock current user ID - in a real app this would come from authentication
+  const currentUserId = "user123"
+  
+  // Check if user has booked this room
+  const hasBookedRoom = userBookingHistory.some(
+    booking => booking.roomId === roomId && booking.userId === currentUserId && booking.status === "completed"
+  )
 
   const showAvailableImages = () => {
     // This is a placeholder. In reality, these would be actual images.
@@ -144,6 +226,36 @@ export default function RoomDetailPage() {
     router.push("/customer/payments?tab=pending")
   }
   
+  // Add function to handle review submission
+  const handleReviewSubmit = () => {
+    if (!reviewComment.trim()) {
+      toast.error("Vui lòng nhập nội dung đánh giá")
+      return
+    }
+    
+    // In a real app, this would send to server
+    const newReview = {
+      id: `review-${Date.now()}`,
+      userName: "Bạn",
+      avatar: "/avatars/you.jpg",
+      rating: reviewRating,
+      date: new Date().toISOString().split('T')[0],
+      comment: reviewComment,
+      images: []
+    }
+    
+    // Add to local state (in a real app, this would update the server)
+    room.userReviews = [newReview, ...room.userReviews]
+    room.reviews = room.userReviews.length
+    
+    // Reset form
+    setReviewComment("")
+    setReviewRating(5)
+    setShowReviewForm(false)
+    
+    toast.success("Đã gửi đánh giá của bạn")
+  }
+
   return (
     <div className="max-w-7xl mx-auto" style={{ width: 'auto', height: 'auto' }}>
       {/* Back button */}
@@ -367,6 +479,143 @@ export default function RoomDetailPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+        
+        {/* Reviews Section */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">Đánh giá từ khách hàng</h2>
+            <div className="flex items-center">
+              <Star className="h-5 w-5 fill-yellow-400 text-yellow-400 mr-1" />
+              <span className="font-medium mr-1">{room.rating}</span>
+              <span className="text-gray-500">({room.userReviews.length} đánh giá)</span>
+            </div>
+          </div>
+          
+          {/* Review Form */}
+          {hasBookedRoom ? (
+            <>
+              {!showReviewForm ? (
+                <div className="mb-6">
+                  <Button 
+                    onClick={() => setShowReviewForm(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Viết đánh giá của bạn
+                  </Button>
+                </div>
+              ) : (
+                <Card className="mb-6">
+                  <CardContent className="p-4">
+                    <h3 className="font-medium mb-3">Đánh giá của bạn</h3>
+                    
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2">Xếp hạng</label>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setReviewRating(star)}
+                            className="focus:outline-none"
+                          >
+                            <Star 
+                              className={`h-6 w-6 ${star <= reviewRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} 
+                            />
+                          </button>
+                        ))}
+                        <span className="ml-2 text-sm">{reviewRating}/5</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2">Nội dung đánh giá</label>
+                      <Textarea
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder="Chia sẻ trải nghiệm của bạn với phòng này..."
+                        className="resize-none"
+                        rows={4}
+                      />
+                    </div>
+                    
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowReviewForm(false)}
+                      >
+                        Hủy
+                      </Button>
+                      <Button 
+                        onClick={handleReviewSubmit}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Gửi đánh giá
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          ) : (
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
+              <p className="text-amber-800 text-sm">
+                Bạn cần đặt và sử dụng phòng này trước khi có thể viết đánh giá. 
+                <Link href="/customer/bookings" className="font-medium underline ml-1">Xem lịch sử đặt phòng</Link>
+              </p>
+            </div>
+          )}
+          
+          {/* Review cards */}
+          <div className="space-y-4">
+            {room.userReviews?.map((review) => (
+              <Card key={review.id} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex justify-between">
+                    <div className="flex items-center">
+                      {/* Avatar placeholder */}
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                        {review.userName.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="font-medium">{review.userName}</div>
+                        <div className="text-sm text-gray-500">{new Date(review.date).toLocaleDateString('vi-VN')}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="ml-1 font-medium">{review.rating}</span>
+                    </div>
+                  </div>
+                  
+                  <p className="mt-3 text-gray-700">{review.comment}</p>
+                  
+                  {review.images.length > 0 && (
+                    <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+                      {review.images.map((image, index) => (
+                        <div 
+                          key={index} 
+                          className="w-20 h-20 flex-shrink-0 bg-blue-50 rounded flex items-center justify-center"
+                        >
+                          <span className="text-xs text-blue-500">Hình ảnh</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          {/* View more button */}
+          {room.userReviews && room.userReviews.length < room.reviews && (
+            <div className="mt-4 text-center">
+              <Button variant="outline" className="mx-auto">
+                Xem thêm đánh giá
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
