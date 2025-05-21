@@ -33,15 +33,24 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface Service {
   id: number
   name: string
   price: number
+  childPrice?: number
   description: string
   category?: string
   imageUrl?: string
   isFixedQuantity?: boolean
+  unitType: string
 }
 
 interface BookedService {
@@ -49,6 +58,7 @@ interface BookedService {
   name: string
   price: number
   quantity: number
+  childQuantity?: number
   totalPrice: number
 }
 
@@ -61,20 +71,21 @@ export default function ServicesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [quantity, setQuantity] = useState(1)
+  const [childQuantity, setChildQuantity] = useState(0)
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
   const [selectedBookingId, setSelectedBookingId] = useState<string>("")
   const [bookings, setBookings] = useState<Array<{id: string | number, roomName: string}>>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
+  const [showCustomAdultQuantityInput, setShowCustomAdultQuantityInput] = useState(false)
+  const [showCustomChildQuantityInput, setShowCustomChildQuantityInput] = useState(false)
 
   // Service categories
   const categories = [
     { id: "all", name: "Tất cả", icon: Sparkles },
     { id: "food", name: "Ẩm thực", icon: Utensils },
     { id: "transport", name: "Đưa đón", icon: Car },
-    { id: "fitness", name: "Thể thao", icon: Dumbbell },
     { id: "spa", name: "Spa & Massage", icon: Waves },
-    { id: "connectivity", name: "Kết nối", icon: Wifi },
-    { id: "shopping", name: "Mua sắm", icon: ShoppingBag },
+    { id: "laundry", name: "Giặt ủi", icon: ShoppingBag },
   ]
 
   useEffect(() => {
@@ -88,70 +99,40 @@ export default function ServicesPage() {
             { 
               id: 1, 
               name: "Buffet sáng", 
-              price: 250000, 
-              description: "Buffet sáng với đa dạng món ăn Á - Âu",
+              price: 250000,
+              childPrice: 200000,
+              description: "Buffet sáng với đa dạng món ăn Á - Âu, phù hợp cho cả gia đình",
               category: "food",
-              imageUrl: "https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf"
+              imageUrl: "https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf",
+              unitType: "người"
             },
             { 
               id: 2, 
               name: "Đưa đón sân bay", 
-              price: 400000, 
-              description: "Dịch vụ đưa đón sân bay sang trọng, thoải mái",
+              price: 400000,
+              childPrice: 200000,
+              description: "Dịch vụ đưa đón sân bay sang trọng, thoải mái với xe riêng",
               category: "transport",
               imageUrl: "https://images.unsplash.com/photo-1549194898-0cb3ed2fa95e",
-              isFixedQuantity: true
+              unitType: "người"
             },
             { 
               id: 3, 
-              name: "Phòng Gym", 
-              price: 100000, 
-              description: "Phòng tập gym hiện đại với đầy đủ thiết bị",
-              category: "fitness",
-              imageUrl: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48",
-              isFixedQuantity: true
+              name: "Spa & Massage", 
+              price: 850000, 
+              description: "Dịch vụ spa và massage cao cấp, giúp thư giãn và làm đẹp",
+              category: "spa",
+              imageUrl: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874",
+              unitType: "người"
             },
             { 
               id: 4, 
-              name: "Spa & Massage", 
-              price: 850000, 
-              description: "Dịch vụ spa và massage cao cấp",
-              category: "spa",
-              imageUrl: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874"
-            },
-            { 
-              id: 5, 
-              name: "WiFi cao cấp", 
-              price: 50000, 
-              description: "Dịch vụ WiFi tốc độ cao dành cho khách VIP",
-              category: "connectivity",
-              imageUrl: "https://images.unsplash.com/photo-1563013544-824ae1b704d3",
-              isFixedQuantity: true
-            },
-            { 
-              id: 6, 
               name: "Dịch vụ giặt ủi", 
               price: 150000, 
-              description: "Dịch vụ giặt ủi chuyên nghiệp",
-              category: "shopping",
-              imageUrl: "https://images.unsplash.com/photo-1545173168-9f1947eebb7f"
-            },
-            { 
-              id: 7, 
-              name: "Bữa tối sang trọng", 
-              price: 550000, 
-              description: "Bữa tối với các món ăn đặc sản địa phương",
-              category: "food",
-              imageUrl: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0"
-            },
-            { 
-              id: 8, 
-              name: "Tour du lịch", 
-              price: 1200000, 
-              description: "Tour du lịch khám phá thành phố và vùng lân cận",
-              category: "transport",
-              imageUrl: "https://images.unsplash.com/photo-1569949381669-ecf31ae8e613",
-              isFixedQuantity: true
+              description: "Dịch vụ giặt và ủi quần áo chuyên nghiệp, đảm bảo sạch sẽ và phẳng phiu",
+              category: "laundry",
+              imageUrl: "https://images.unsplash.com/photo-1545173168-9f1947eebb7f",
+              unitType: "kg"
             }
           ]
           setServices(mockServices)
@@ -263,15 +244,14 @@ export default function ServicesPage() {
       return
     }
     
-    // For fixed quantity services, always use quantity of 1
-    const serviceQuantity = selectedService.isFixedQuantity ? 1 : quantity
-    
     const bookedService: BookedService = {
       id: selectedService.id,
       name: selectedService.name,
       price: selectedService.price,
-      quantity: serviceQuantity,
-      totalPrice: selectedService.price * serviceQuantity
+      quantity: quantity,
+      childQuantity: selectedService.childPrice ? childQuantity : undefined,
+      totalPrice: (selectedService.price * quantity) + 
+                 (selectedService.childPrice ? selectedService.childPrice * childQuantity : 0)
     }
     
     // Get current booking services from localStorage
@@ -331,24 +311,24 @@ export default function ServicesPage() {
     // Reset state
     setSelectedService(null)
     setQuantity(1)
+    setChildQuantity(0)
     setSelectedBookingId("")
     
     // Show success message
-    toast.success(
+    toast.success((
       <div className="flex items-center">
         <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
         <div>
           <p className="font-medium">Đã thêm dịch vụ vào đặt phòng</p>
-          <p className="text-sm">{bookedService.name}{!selectedService.isFixedQuantity && ` (${serviceQuantity})`}</p>
+          <p className="text-sm">{bookedService.name}{!selectedService.isFixedQuantity && ` (${quantity} người lớn${selectedService.childPrice ? `, ${childQuantity} trẻ em` : ''})`}</p>
         </div>
-      </div>,
-      {
-        action: {
-          label: "Xem chi tiết",
-          onClick: () => router.push(`/customer/booking/${selectedBookingId}`)
-        }
+      </div>
+    ), {
+      action: {
+        label: "Xem chi tiết",
+        onClick: () => router.push(`/customer/booking/${selectedBookingId}`)
       }
-    )
+    })
   }
   
   return (
@@ -430,13 +410,29 @@ export default function ServicesPage() {
                   )}
                 </div>
                 <p className="text-gray-600 text-sm my-3">{service.description}</p>
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">{service.unitType === 'người' ? 'Giá người lớn:' : 'Giá:'}</span>
+                    <span className="font-bold text-blue-700">{formatPrice(service.price)}</span>
+                  </div>
+                  {service.childPrice && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Giá trẻ em:</span>
+                      <span className="font-bold text-blue-700">{formatPrice(service.childPrice)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Đơn vị tính:</span>
+                    <span className="text-sm text-gray-600">
+                      {service.unitType === "người" ? "người" : service.unitType === "kg" ? "kg" : service.unitType}
+                    </span>
+                  </div>
+                </div>
                 <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                  <span className="font-bold text-xl text-blue-700">{formatPrice(service.price)}</span>
                   <Button 
                     className="bg-blue-600 hover:bg-blue-700"
                     onClick={() => handleBookService(service)}
                   >
-
                     Đặt ngay
                   </Button>
                 </div>
@@ -463,60 +459,139 @@ export default function ServicesPage() {
                   <div>
                     <h3 className="font-bold">{selectedService.name}</h3>
                     <p className="text-sm text-gray-600">{selectedService.description}</p>
-                    {selectedService.isFixedQuantity && (
-                      <div className="mt-2">
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                          Dịch vụ cố định
-                        </span>
-                      </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-blue-700">{formatPrice(selectedService.price)}</div>
+                    {selectedService.childPrice && (
+                      <div className="text-sm text-gray-600">Trẻ em: {formatPrice(selectedService.childPrice)}</div>
                     )}
                   </div>
-                  <span className="font-bold text-blue-700">{formatPrice(selectedService.price)}</span>
                 </div>
               </div>
               
-              {/* {!selectedService.isFixedQuantity && (
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="quantity">Số lượng</Label>
-                  <div className="flex items-center">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                      disabled={quantity <= 1}
-                      className="h-9 w-9 p-0"
-                    >
-                      -
-                    </Button>
+                  <Label htmlFor="quantity">Số lượng {selectedService.unitType === 'kg' ? 'kg' : 'người lớn'}</Label>
+                  <Select
+                    value={showCustomAdultQuantityInput ? 'custom' : quantity.toString()}
+                    onValueChange={(value) => {
+                      if (value === 'custom') {
+                        setShowCustomAdultQuantityInput(true);
+                        setQuantity(0); // Reset quantity when switching to custom
+                      } else {
+                        setShowCustomAdultQuantityInput(false);
+                        if (selectedService?.unitType === 'kg') {
+                           setQuantity(parseFloat(value));
+                        } else {
+                          setQuantity(parseInt(value));
+                        }
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Chọn số lượng" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedService.unitType === 'kg' ? (
+                        // For laundry service, show kg options up to 5
+                        Array.from({ length: 10 }, (_, i) => (i + 1) * 0.5)
+                          .filter(value => value <= 5)
+                          .map((value) => (
+                            <SelectItem key={value} value={value.toString()}>
+                              {value} kg
+                            </SelectItem>
+                          ))
+                      ) : (
+                        // For other services, show person options up to 5
+                        Array.from({ length: 5 }, (_, i) => i + 1).map((value) => (
+                          <SelectItem key={value} value={value.toString()}>
+                            {value} {selectedService.unitType === 'kg' ? 'kg' : 'người lớn'}
+                          </SelectItem>
+                        ))
+                      )}
+                      <SelectItem key="custom" value="custom">Khác...</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {showCustomAdultQuantityInput && (
                     <Input
-                      id="quantity"
-                      className="h-9 w-20 mx-2 text-center"
+                      id="custom-adult-quantity"
+                      type={selectedService.unitType === 'kg' ? 'number' : 'number'}
+                      step={selectedService.unitType === 'kg' ? '0.5' : '1'}
+                      min="0"
                       value={quantity}
                       onChange={(e) => {
-                        const value = parseInt(e.target.value)
-                        if (!isNaN(value) && value >= 1) {
-                          setQuantity(value)
+                        const value = selectedService.unitType === 'kg' ? parseFloat(e.target.value) : parseInt(e.target.value, 10);
+                        if (!isNaN(value) && value >= 0) {
+                          setQuantity(value);
+                        } else if (e.target.value === '') {
+                           setQuantity(0);
                         }
                       }}
+                      placeholder={`Nhập số lượng ${selectedService.unitType === 'kg' ? 'kg' : 'người lớn'}`}
+                      className="mt-2"
                     />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setQuantity(prev => prev + 1)}
-                      className="h-9 w-9 p-0"
-                    >
-                      +
-                    </Button>
-                  </div>
+                  )}
                 </div>
-              )} */}
+
+                {selectedService.childPrice && (
+                  <div className="space-y-2">
+                    <Label htmlFor="child-quantity">Số lượng trẻ em</Label>
+                    <Select
+                      value={showCustomChildQuantityInput ? 'custom' : childQuantity.toString()}
+                      onValueChange={(value) => {
+                        if (value === 'custom') {
+                          setShowCustomChildQuantityInput(true);
+                          setChildQuantity(0); // Reset child quantity when switching to custom
+                        } else {
+                          setShowCustomChildQuantityInput(false);
+                          setChildQuantity(parseInt(value));
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Chọn số lượng" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 6 }, (_, i) => i).map((value) => (
+                          <SelectItem key={value} value={value.toString()}>
+                            {value} trẻ em
+                          </SelectItem>
+                        ))}
+                        <SelectItem key="custom" value="custom">Khác...</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {showCustomChildQuantityInput && (
+                      <Input
+                        id="custom-child-quantity"
+                        type="number"
+                        step="1"
+                        min="0"
+                        value={childQuantity}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value, 10);
+                          if (!isNaN(value) && value >= 0) {
+                            setChildQuantity(value);
+                          } else if (e.target.value === '') {
+                             setChildQuantity(0);
+                          }
+                        }}
+                        placeholder="Nhập số lượng trẻ em"
+                        className="mt-2"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
               
               <div className="flex justify-between items-center pt-4 border-t">
                 <span className="text-sm font-medium">Tổng tiền:</span>
                 <span className="font-bold text-xl text-blue-700">
-                  {formatPrice(selectedService.price * (selectedService.isFixedQuantity ? 1 : quantity))}
+                  {formatPrice(
+                    (selectedService.price * quantity) + 
+                    (selectedService.childPrice ? selectedService.childPrice * childQuantity : 0)
+                  )}
                 </span>
               </div>
             </div>

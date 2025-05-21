@@ -28,7 +28,9 @@ namespace HotelManagementAPI.Controllers
                 Id = s.Id,
                 Name = s.Name,
                 Price = s.Price,
-                Description = s.Description
+                ChildPrice = s.ChildPrice,
+                Description = s.Description,
+                UnitType = s.UnitType
             }).ToList();
         }
 
@@ -48,7 +50,9 @@ namespace HotelManagementAPI.Controllers
                 Id = service.Id,
                 Name = service.Name,
                 Price = service.Price,
-                Description = service.Description
+                ChildPrice = service.ChildPrice,
+                Description = service.Description,
+                UnitType = service.UnitType
             };
         }
 
@@ -60,7 +64,9 @@ namespace HotelManagementAPI.Controllers
             {
                 Name = createServiceDTO.Name,
                 Price = createServiceDTO.Price,
-                Description = createServiceDTO.Description
+                ChildPrice = createServiceDTO.ChildPrice,
+                Description = createServiceDTO.Description,
+                UnitType = createServiceDTO.UnitType
             };
 
             _context.Services.Add(service);
@@ -71,7 +77,9 @@ namespace HotelManagementAPI.Controllers
                 Id = service.Id,
                 Name = service.Name,
                 Price = service.Price,
-                Description = service.Description
+                ChildPrice = service.ChildPrice,
+                Description = service.Description,
+                UnitType = service.UnitType
             });
         }
 
@@ -87,7 +95,9 @@ namespace HotelManagementAPI.Controllers
 
             service.Name = updateServiceDTO.Name;
             service.Price = updateServiceDTO.Price;
+            service.ChildPrice = updateServiceDTO.ChildPrice;
             service.Description = updateServiceDTO.Description;
+            service.UnitType = updateServiceDTO.UnitType;
 
             try
             {
