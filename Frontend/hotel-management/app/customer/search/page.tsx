@@ -14,13 +14,15 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Star, Filter, Search, Wifi, Coffee, Bath, Users, ArrowUpDown } from "lucide-react"
+import { Star, Filter, Search, Wifi, Coffee, Bath, Users, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 
 export default function RoomSearchPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [priceRange, setPriceRange] = useState([500000, 3000000])
   const [sortOption, setSortOption] = useState("recommended")
-  const [showFilters, setShowFilters] = useState(false)
+  const [showFiltersMobile, setShowFiltersMobile] = useState(false)
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
   
   // Sample room types for filtering
@@ -46,6 +48,8 @@ export default function RoomSearchPage() {
       type: "deluxe",
       image: "/room-1.jpg",
       price: 1200000,
+      discountPrice: 960000,
+      discount: "20%",
       rating: 4.8,
       capacity: 2,
       amenities: ["wifi", "breakfast"],
@@ -154,16 +158,109 @@ export default function RoomSearchPage() {
     )
   }
 
-  return (
+  const resetFilters = () => {
+    setSelectedAmenities([])
+    setPriceRange([500000, 3000000])
+    setSearchQuery("")
+  }
+
+  // Sidebar filter component
+  const FiltersSidebar = () => (
     <div className="space-y-6">
-      <div className="mb-8">
+      <div>
+        <h3 className="font-medium mb-3">Khoảng giá</h3>
+        <div className="px-2">
+          <Slider
+            defaultValue={priceRange}
+            min={500000}
+            max={3000000}
+            step={100000}
+            onValueChange={setPriceRange}
+            className="mb-6"
+          />
+          <div className="flex justify-between text-sm">
+            <span>{formatPrice(priceRange[0])}</span>
+            <span>{formatPrice(priceRange[1])}</span>
+          </div>
+        </div>
+      </div>
+      
+      <Separator />
+      
+      <div>
+        <h3 className="font-medium mb-3">Loại phòng</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {roomTypes.map(type => (
+            <div 
+              key={type.id} 
+              className={`
+                p-2 border rounded-md text-center cursor-pointer transition
+                ${selectedAmenities.includes(type.id) 
+                  ? "bg-blue-50 border-blue-200" 
+                  : "hover:bg-gray-50"
+                }
+              `}
+              onClick={() => toggleAmenity(type.id)}
+            >
+              {type.label}
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <Separator />
+      
+      <div>
+        <h3 className="font-medium mb-3">Tiện nghi</h3>
+        <div className="space-y-3">
+          {amenities.map(amenity => (
+            <div key={amenity.id} className="flex items-center space-x-2">
+              <Checkbox 
+                id={`sidebar-${amenity.id}`}
+                checked={selectedAmenities.includes(amenity.id)}
+                onCheckedChange={() => toggleAmenity(amenity.id)}
+              />
+              <label 
+                htmlFor={`sidebar-${amenity.id}`}
+                className="flex items-center text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                <amenity.icon className="h-4 w-4 mr-2 text-gray-500" />
+                {amenity.label}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <Separator />
+      
+      <Button 
+        variant="outline" 
+        className="w-full"
+        onClick={resetFilters}
+      >
+        Đặt lại bộ lọc
+      </Button>
+    </div>
+  )
+
+  return (
+    <div className="max-w-7xl mx-auto" style={{ width: 'auto', height: 'auto' }}>
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Link href="/customer" className="text-blue-600 hover:underline flex items-center">
+            <ChevronLeft className="h-4 w-4" />
+            <span>Quay lại</span>
+          </Link>
+        </div>
         <h1 className="text-3xl font-bold">Tìm kiếm phòng</h1>
         <p className="text-gray-600">Tìm kiếm và lọc các loại phòng theo nhu cầu của bạn</p>
       </div>
 
-      {/* Search and filter section */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+      {/* Main Search input */}
+      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
             <Input
@@ -193,8 +290,8 @@ export default function RoomSearchPage() {
             
             <Button 
               variant="outline" 
-              className="gap-2"
-              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2 md:hidden"
+              onClick={() => setShowFiltersMobile(!showFiltersMobile)}
             >
               <Filter className="h-4 w-4" />
               <span>Bộ lọc</span>
@@ -202,184 +299,124 @@ export default function RoomSearchPage() {
           </div>
         </div>
         
-        {/* Expandable filters */}
-        {showFilters && (
-          <div className="border-t pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Price range filter */}
-              <div>
-                <h3 className="font-medium mb-3">Khoảng giá</h3>
-                <div className="px-2">
-                  <Slider
-                    defaultValue={priceRange}
-                    min={500000}
-                    max={3000000}
-                    step={100000}
-                    onValueChange={setPriceRange}
-                    className="mb-6"
-                  />
-                  <div className="flex justify-between text-sm">
-                    <span>{formatPrice(priceRange[0])}</span>
-                    <span>{formatPrice(priceRange[1])}</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Room type filter */}
-              <div>
-                <h3 className="font-medium mb-3">Loại phòng</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {roomTypes.map(type => (
-                    <div 
-                      key={type.id} 
-                      className={`
-                        p-2 border rounded-md text-center cursor-pointer transition
-                        ${selectedAmenities.includes(type.id) 
-                          ? "bg-blue-50 border-blue-200" 
-                          : "hover:bg-gray-50"
-                        }
-                      `}
-                      onClick={() => toggleAmenity(type.id)}
-                    >
-                      {type.label}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Amenities filter */}
-              <div>
-                <h3 className="font-medium mb-3">Tiện nghi</h3>
-                <div className="space-y-2">
-                  {amenities.map(amenity => (
-                    <div key={amenity.id} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={amenity.id}
-                        checked={selectedAmenities.includes(amenity.id)}
-                        onCheckedChange={() => toggleAmenity(amenity.id)}
-                      />
-                      <label 
-                        htmlFor={amenity.id}
-                        className="flex items-center text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        <amenity.icon className="h-4 w-4 mr-2 text-gray-500" />
-                        {amenity.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-6 flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => {
-                setSelectedAmenities([])
-                setPriceRange([500000, 3000000])
-              }}>
-                Đặt lại
-              </Button>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700"
-                onClick={() => setShowFilters(false)}
-              >
-                Áp dụng
-              </Button>
-            </div>
+        {/* Mobile filters - only show on small screens */}
+        {showFiltersMobile && (
+          <div className="mt-4 pt-4 border-t md:hidden">
+            <FiltersSidebar />
           </div>
         )}
       </div>
 
-      {/* Results */}
-      <div>
-        <div className="mb-4 flex justify-between items-center">
-          <h2 className="text-xl font-semibold">
-            Tìm thấy {sortedRooms.length} phòng
-          </h2>
+      {/* Two column layout for desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Sidebar - only visible on md and up */}
+        <div className="hidden md:block">
+          <div className="bg-white rounded-lg shadow-sm border p-4 sticky top-8">
+            <h2 className="text-lg font-semibold mb-4">Bộ lọc</h2>
+            <FiltersSidebar />
+          </div>
         </div>
         
-        <div className="space-y-6">
-          {sortedRooms.map((room) => (
-            <Card key={room.id} className="overflow-hidden">
-              <div className="flex flex-col md:flex-row">
-                <div className="relative h-48 md:h-auto md:w-1/3 bg-gray-200 flex items-center justify-center">
-                  <div className="text-gray-400">Room Image</div>
-                </div>
-                <CardContent className="flex flex-col p-6 md:w-2/3">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-xl">{room.name}</h3>
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm ml-1">{room.rating}</span>
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-600 mb-4">{room.description}</p>
-                    
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <div className="flex items-center text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
-                        <Users className="h-4 w-4 mr-1" />
-                        {room.capacity} người
-                      </div>
-                      
-                      {room.amenities.includes('wifi') && (
-                        <div className="flex items-center text-sm bg-gray-100 px-3 py-1 rounded-full">
-                          <Wifi className="h-4 w-4 mr-1" />
-                          Wifi miễn phí
-                        </div>
-                      )}
-                      
-                      {room.amenities.includes('breakfast') && (
-                        <div className="flex items-center text-sm bg-gray-100 px-3 py-1 rounded-full">
-                          <Coffee className="h-4 w-4 mr-1" />
-                          Bữa sáng miễn phí
-                        </div>
-                      )}
-                      
-                      {room.amenities.includes('bath') && (
-                        <div className="flex items-center text-sm bg-gray-100 px-3 py-1 rounded-full">
-                          <Bath className="h-4 w-4 mr-1" />
-                          Bồn tắm spa
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row justify-between items-end mt-4 pt-4 border-t">
-                    <div>
-                      <span className="font-bold text-2xl">{formatPrice(room.price)}</span>
-                      <span className="text-gray-500"> / đêm</span>
-                    </div>
-                    <div className="flex gap-3 mt-3 sm:mt-0">
-                      <Link href={`/customer/room/${room.id}`}>
-                        <Button variant="outline">Xem chi tiết</Button>
-                      </Link>
-                      <Link href={`/customer/booking/${room.id}`}>
-                        <Button className="bg-blue-600 hover:bg-blue-700">Đặt ngay</Button>
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </div>
-            </Card>
-          ))}
+        {/* Results Column */}
+        <div className="md:col-span-3">
+          <div className="mb-4 flex justify-between items-center">
+            <h2 className="text-lg font-semibold">
+              Tìm thấy {sortedRooms.length} phòng
+            </h2>
+          </div>
           
-          {sortedRooms.length === 0 && (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <h3 className="text-xl font-medium mb-2">Không tìm thấy phòng</h3>
-              <p className="text-gray-500 mb-4">Không có phòng nào phù hợp với tiêu chí tìm kiếm của bạn.</p>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSearchQuery("")
-                  setSelectedAmenities([])
-                  setPriceRange([500000, 3000000])
-                }}
-              >
-                Đặt lại bộ lọc
-              </Button>
-            </div>
-          )}
+          <div className="space-y-4">
+            {sortedRooms.map((room) => (
+              <Card key={room.id} className="overflow-hidden hover:shadow-md transition">
+                <div className="flex flex-col md:flex-row">
+                  <div className="relative md:w-2/5 bg-blue-100 flex items-center justify-center" style={{ minHeight: '200px', height: 'auto' }}>
+                    <div className="text-blue-600 font-medium">Hình ảnh phòng</div>
+                    {room.discount && (
+                      <Badge className="absolute top-2 right-2 bg-green-600">
+                        Giảm {room.discount}
+                      </Badge>
+                    )}
+                  </div>
+                  <CardContent className="flex flex-col p-5 md:w-3/5">
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-bold text-xl">{room.name}</h3>
+                        <div className="flex items-center bg-yellow-50 px-2 py-1 rounded-full">
+                          <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                          <span className="text-xs font-medium ml-1 text-yellow-700">{room.rating}</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-gray-600 mb-4 line-clamp-2">{room.description}</p>
+                      
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        <div className="flex items-center text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                          <Users className="h-4 w-4 mr-1" />
+                          {room.capacity} người
+                        </div>
+                        
+                        {room.amenities.includes('wifi') && (
+                          <div className="flex items-center text-sm bg-gray-100 px-3 py-1 rounded-full">
+                            <Wifi className="h-4 w-4 mr-1" />
+                            Wifi
+                          </div>
+                        )}
+                        
+                        {room.amenities.includes('breakfast') && (
+                          <div className="flex items-center text-sm bg-gray-100 px-3 py-1 rounded-full">
+                            <Coffee className="h-4 w-4 mr-1" />
+                            Bữa sáng
+                          </div>
+                        )}
+                        
+                        {room.amenities.includes('bath') && (
+                          <div className="flex items-center text-sm bg-gray-100 px-3 py-1 rounded-full">
+                            <Bath className="h-4 w-4 mr-1" />
+                            Bồn tắm
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row justify-between items-end mt-4 pt-4 border-t">
+                      <div>
+                        {room.discountPrice ? (
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-bold text-xl text-blue-700">{formatPrice(room.discountPrice)}</span>
+                            <span className="text-sm text-gray-500 line-through">{formatPrice(room.price)}</span>
+                            <span className="text-gray-500"> / đêm</span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="font-bold text-xl text-blue-700">{formatPrice(room.price)}</span>
+                            <span className="text-gray-500"> / đêm</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-3 mt-3 sm:mt-0">
+                        <Link href={`/customer/room/${room.id}`}>
+                          <Button className="bg-blue-600 hover:bg-blue-700">Xem chi tiết</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </CardContent>
+                </div>
+              </Card>
+            ))}
+            
+            {sortedRooms.length === 0 && (
+              <div className="text-center py-12 bg-white rounded-lg border shadow-sm">
+                <h3 className="text-xl font-medium mb-2">Không tìm thấy phòng</h3>
+                <p className="text-gray-500 mb-4">Không có phòng nào phù hợp với tiêu chí tìm kiếm của bạn.</p>
+                <Button 
+                  variant="outline" 
+                  onClick={resetFilters}
+                >
+                  Đặt lại bộ lọc
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { Search, Calendar, Users, ArrowRight, Star } from "lucide-react"
+import { ArrowRight, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { 
   Select, 
   SelectContent, 
@@ -14,8 +14,12 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 
 export default function CustomerDashboard() {
+  const router = useRouter()
+  
   // Sample featured rooms data
   const featuredRooms = [
     {
@@ -23,6 +27,8 @@ export default function CustomerDashboard() {
       name: "Phòng Deluxe View Biển",
       image: "/room-1.jpg",
       price: "1,200,000",
+      discountPrice: "960,000",
+      discount: "20%",
       rating: 4.8,
       description: "Phòng sang trọng với tầm nhìn ra biển, không gian rộng rãi và tiện nghi cao cấp."
     },
@@ -44,26 +50,16 @@ export default function CustomerDashboard() {
     },
   ]
 
-  // Sample promotional offers
-  const promotions = [
-    {
-      id: "1",
-      title: "Ưu đãi mùa hè - Giảm 30%",
-      image: "/promo-1.jpg",
-      description: "Đặt phòng trước 30/7 và nhận giảm giá 30% cho kỳ nghỉ mùa hè của bạn."
-    },
-    {
-      id: "2",
-      title: "Gói nghỉ dưỡng gia đình",
-      image: "/promo-2.jpg",
-      description: "Đặt phòng Suite và nhận ưu đãi bữa sáng miễn phí cho cả gia đình."
-    },
-  ]
+  const [searchQuery, setSearchQuery] = useState("")
+  
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+  }
 
   return (
-    <div className="space-y-10">
+    <div className="w-full">
       {/* Hero Section with Search */}
-      <div className="relative rounded-xl overflow-hidden h-[500px]">
+      <div className="relative overflow-hidden h-[500px]">
         <div className="absolute inset-0 bg-black/50 z-10" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10" />
         
@@ -71,70 +67,10 @@ export default function CustomerDashboard() {
         <div className="absolute inset-0 bg-blue-900 flex items-center justify-center text-white text-4xl font-light">
           Scenic Hotel View
         </div>
-        
-        <div className="absolute bottom-0 left-0 right-0 z-20 p-8 text-white">
-          <h1 className="text-4xl font-bold mb-2">Chào mừng đến với khách sạn của chúng tôi</h1>
-          <p className="text-xl mb-6 max-w-2xl">Trải nghiệm dịch vụ lưu trú đẳng cấp với tiện nghi hiện đại và dịch vụ chuyên nghiệp</p>
-          
-          {/* Search Box */}
-          <div className="bg-white rounded-lg p-4 flex flex-col md:flex-row gap-4 text-black max-w-4xl">
-            <div className="flex-1 flex items-center gap-2">
-              <Search className="h-5 w-5 text-gray-500" />
-              <Input placeholder="Tìm kiếm phòng..." className="border-0 focus-visible:ring-0" />
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-gray-500" />
-              <Select>
-                <SelectTrigger className="w-[180px] border-0">
-                  <SelectValue placeholder="Ngày nhận phòng" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="today">Hôm nay</SelectItem>
-                  <SelectItem value="tomorrow">Ngày mai</SelectItem>
-                  <SelectItem value="nextweek">Tuần sau</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-gray-500" />
-              <Select>
-                <SelectTrigger className="w-[180px] border-0">
-                  <SelectValue placeholder="Ngày trả phòng" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tomorrow">Ngày mai</SelectItem>
-                  <SelectItem value="plus2">2 ngày nữa</SelectItem>
-                  <SelectItem value="plus3">3 ngày nữa</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-gray-500" />
-              <Select>
-                <SelectTrigger className="w-[180px] border-0">
-                  <SelectValue placeholder="Số người" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 người</SelectItem>
-                  <SelectItem value="2">2 người</SelectItem>
-                  <SelectItem value="3">3 người</SelectItem>
-                  <SelectItem value="4">4 người</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <Button className="bg-blue-600 hover:bg-blue-700 ml-auto">
-              Tìm kiếm
-            </Button>
-          </div>
-        </div>
       </div>
 
       {/* Featured Rooms Section */}
-      <section>
+      <section className="mt-10 px-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold">Phòng nổi bật</h2>
           <Link href="/customer/search" className="text-blue-600 hover:underline flex items-center">
@@ -142,72 +78,54 @@ export default function CustomerDashboard() {
           </Link>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           {featuredRooms.map((room) => (
-            <Card key={room.id} className="overflow-hidden hover:shadow-lg transition">
-              <div className="relative h-48 bg-gray-200 flex items-center justify-center">
-                <div className="text-gray-400">Room Image</div>
-              </div>
-              <CardContent className="p-5">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-bold text-lg">{room.name}</h3>
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm ml-1">{room.rating}</span>
-                  </div>
+            <Link 
+              key={room.id} 
+              href={`/customer/room/${room.id}`}
+              className="block"
+            >
+              <Card className="overflow-hidden hover:shadow-lg transition h-full">
+                <div className="relative h-48 bg-blue-100 flex items-center justify-center">
+                  <div className="text-blue-600 font-medium">Hình ảnh phòng</div>
+                  {room.discount && (
+                    <Badge className="absolute top-2 right-2 bg-green-600">
+                      Giảm {room.discount}
+                    </Badge>
+                  )}
                 </div>
-                <p className="text-gray-500 text-sm mb-4">{room.description}</p>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-bold text-lg">{room.price} VNĐ</span>
+                <CardContent className="p-5 flex flex-col h-[calc(100%-12rem)]">
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="font-bold text-lg">{room.name}</h3>
+                    <div className="flex items-center bg-yellow-50 px-2 py-1 rounded-full">
+                      <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                      <span className="text-xs font-medium ml-1 text-yellow-700">{room.rating}</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{room.description}</p>
+                  <div className="mt-auto">
+                    {room.discountPrice ? (
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-bold text-lg text-blue-700">{room.discountPrice} VNĐ</span>
+                        <span className="text-sm text-gray-500 line-through">{room.price} VNĐ</span>
+                      </div>
+                    ) : (
+                      <span className="font-bold text-lg text-blue-700">{room.price} VNĐ</span>
+                    )}
                     <span className="text-sm text-gray-500">/đêm</span>
                   </div>
-                  <Link href={`/customer/room/${room.id}`}>
-                    <Button variant="outline" className="hover:bg-blue-50 hover:text-blue-600">
-                      Chi tiết
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* Promotions Section */}
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Ưu đãi đặc biệt</h2>
-          <Link href="/customer/promotions" className="text-blue-600 hover:underline flex items-center">
-            Xem tất cả <ArrowRight className="ml-1 h-4 w-4" />
-          </Link>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {promotions.map((promo) => (
-            <Card key={promo.id} className="overflow-hidden hover:shadow-lg transition">
-              <div className="flex flex-col md:flex-row">
-                <div className="relative h-40 md:w-1/3 bg-gray-200 flex items-center justify-center">
-                  <div className="text-gray-400">Promo Image</div>
-                </div>
-                <CardContent className="p-5 md:w-2/3">
-                  <h3 className="font-bold text-lg mb-2">{promo.title}</h3>
-                  <p className="text-gray-500 text-sm mb-4">{promo.description}</p>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    Đặt ngay
-                  </Button>
                 </CardContent>
-              </div>
-            </Card>
+              </Card>
+            </Link>
           ))}
         </div>
       </section>
 
       {/* Services Highlight */}
-      <section className="bg-blue-50 rounded-xl p-8">
+      <section className="bg-blue-50 p-8 mt-10 mb-6 mx-6">
         <h2 className="text-2xl font-bold mb-6 text-center">Dịch vụ của chúng tôi</h2>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-6">
           {[
             { title: "Nhà hàng", icon: "🍽️", description: "Thưởng thức ẩm thực đa dạng" },
             { title: "Spa & Massage", icon: "💆", description: "Thư giãn và làm đẹp" },

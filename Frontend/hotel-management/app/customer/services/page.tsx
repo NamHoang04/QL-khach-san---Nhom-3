@@ -12,9 +12,27 @@ import {
   ShoppingBag, 
   Plus, 
   Sparkles,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  CheckCircle,
+  XCircle,
+  AlertTriangle
 } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface Service {
   id: number
@@ -23,13 +41,30 @@ interface Service {
   description: string
   category?: string
   imageUrl?: string
+  isFixedQuantity?: boolean
+}
+
+interface BookedService {
+  id: number
+  name: string
+  price: number
+  quantity: number
+  totalPrice: number
 }
 
 export default function ServicesPage() {
+  const router = useRouter()
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [activeCategory, setActiveCategory] = useState<string>("all")
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedService, setSelectedService] = useState<Service | null>(null)
+  const [quantity, setQuantity] = useState(1)
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
+  const [selectedBookingId, setSelectedBookingId] = useState<string>("")
+  const [bookings, setBookings] = useState<Array<{id: string | number, roomName: string}>>([])
+  const [loadingBookings, setLoadingBookings] = useState(false)
 
   // Service categories
   const categories = [
@@ -64,7 +99,8 @@ export default function ServicesPage() {
               price: 400000, 
               description: "Dịch vụ đưa đón sân bay sang trọng, thoải mái",
               category: "transport",
-              imageUrl: "https://images.unsplash.com/photo-1549194898-0cb3ed2fa95e"
+              imageUrl: "https://images.unsplash.com/photo-1549194898-0cb3ed2fa95e",
+              isFixedQuantity: true
             },
             { 
               id: 3, 
@@ -72,7 +108,8 @@ export default function ServicesPage() {
               price: 100000, 
               description: "Phòng tập gym hiện đại với đầy đủ thiết bị",
               category: "fitness",
-              imageUrl: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48"
+              imageUrl: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48",
+              isFixedQuantity: true
             },
             { 
               id: 4, 
@@ -88,7 +125,8 @@ export default function ServicesPage() {
               price: 50000, 
               description: "Dịch vụ WiFi tốc độ cao dành cho khách VIP",
               category: "connectivity",
-              imageUrl: "https://images.unsplash.com/photo-1563013544-824ae1b704d3"
+              imageUrl: "https://images.unsplash.com/photo-1563013544-824ae1b704d3",
+              isFixedQuantity: true
             },
             { 
               id: 6, 
@@ -112,7 +150,8 @@ export default function ServicesPage() {
               price: 1200000, 
               description: "Tour du lịch khám phá thành phố và vùng lân cận",
               category: "transport",
-              imageUrl: "https://images.unsplash.com/photo-1569949381669-ecf31ae8e613"
+              imageUrl: "https://images.unsplash.com/photo-1569949381669-ecf31ae8e613",
+              isFixedQuantity: true
             }
           ]
           setServices(mockServices)
@@ -161,8 +200,166 @@ export default function ServicesPage() {
     return price.toLocaleString('vi-VN') + ' ₫'
   }
   
+  // Handle booking service
+  const handleBookService = (service: Service) => {
+    setSelectedService(service)
+    setQuantity(1) // Always reset to 1 when opening dialog
+    
+    // For fixed quantity services, skip the quantity selection dialog
+    if (service.isFixedQuantity) {
+      setBookingDialogOpen(true)
+      fetchActiveBookings()
+    } else {
+      setDialogOpen(true)
+    }
+  }
+  
+  // Fetch active bookings
+  const fetchActiveBookings = () => {
+    setLoadingBookings(true)
+    
+    // In a real app, you would fetch this from the API
+    if (shouldUseMockData()) {
+      // Mock booking data
+      const mockBookings = [
+        { id: 1, roomName: "Phòng Deluxe King - 101" },
+        { id: 2, roomName: "Phòng Premium Double - 203" },
+        { id: 3, roomName: "Suite Biển - 305" },
+      ]
+      
+      setTimeout(() => {
+        setBookings(mockBookings)
+        setLoadingBookings(false)
+      }, 500)
+    } else {
+      // Real API call would go here
+      get<Array<{id: string | number, roomName: string}>>('Bookings/active')
+        .then(data => {
+          setBookings(data)
+        })
+        .catch(err => {
+          console.error("Error fetching bookings:", err)
+          toast.error("Không thể tải danh sách đặt phòng.")
+        })
+        .finally(() => {
+          setLoadingBookings(false)
+        })
+    }
+  }
+  
+  // Confirm service booking - only for variable quantity services
+  const confirmServiceBooking = () => {
+    if (!selectedService) return
+    
+    // Show booking selection dialog
+    setBookingDialogOpen(true)
+    fetchActiveBookings()
+  }
+  
+  // Add service to selected booking
+  const addServiceToBooking = () => {
+    if (!selectedService || !selectedBookingId) {
+      toast.error("Vui lòng chọn phòng đã đặt để thêm dịch vụ")
+      return
+    }
+    
+    // For fixed quantity services, always use quantity of 1
+    const serviceQuantity = selectedService.isFixedQuantity ? 1 : quantity
+    
+    const bookedService: BookedService = {
+      id: selectedService.id,
+      name: selectedService.name,
+      price: selectedService.price,
+      quantity: serviceQuantity,
+      totalPrice: selectedService.price * serviceQuantity
+    }
+    
+    // Get current booking services from localStorage
+    const storageKey = `booking_services_${selectedBookingId}`
+    const existingServicesJson = localStorage.getItem(storageKey)
+    let services: BookedService[] = []
+    
+    if (existingServicesJson) {
+      try {
+        services = JSON.parse(existingServicesJson)
+        
+        // For fixed quantity services, check if it already exists - don't allow duplicates
+        if (selectedService.isFixedQuantity) {
+          const existingIndex = services.findIndex(s => s.id === bookedService.id)
+          if (existingIndex >= 0) {
+            toast.error(`Dịch vụ "${selectedService.name}" đã được đặt và không thể đặt thêm`)
+            setBookingDialogOpen(false)
+            setSelectedService(null)
+            setSelectedBookingId("")
+            return
+          }
+          // Add new fixed service
+          services.push(bookedService)
+        } else {
+          // For regular services, update quantity if exists
+          const existingIndex = services.findIndex(s => s.id === bookedService.id)
+          
+          if (existingIndex >= 0) {
+            // Update existing service
+            services[existingIndex] = {
+              ...services[existingIndex],
+              quantity: services[existingIndex].quantity + bookedService.quantity,
+              totalPrice: services[existingIndex].price * (services[existingIndex].quantity + bookedService.quantity)
+            }
+          } else {
+            // Add new service
+            services.push(bookedService)
+          }
+        }
+      } catch (err) {
+        console.error("Error parsing services from localStorage:", err)
+        // Start fresh if there's an error
+        services = [bookedService]
+      }
+    } else {
+      // No existing services, add the new one
+      services = [bookedService]
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem(storageKey, JSON.stringify(services))
+    
+    // Close dialogs
+    setDialogOpen(false)
+    setBookingDialogOpen(false)
+    
+    // Reset state
+    setSelectedService(null)
+    setQuantity(1)
+    setSelectedBookingId("")
+    
+    // Show success message
+    toast.success(
+      <div className="flex items-center">
+        <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+        <div>
+          <p className="font-medium">Đã thêm dịch vụ vào đặt phòng</p>
+          <p className="text-sm">{bookedService.name}{!selectedService.isFixedQuantity && ` (${serviceQuantity})`}</p>
+        </div>
+      </div>,
+      {
+        action: {
+          label: "Xem chi tiết",
+          onClick: () => router.push(`/customer/booking/${selectedBookingId}`)
+        }
+      }
+    )
+  }
+  
   return (
-    <div className="container max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto" style={{ width: 'auto', height: 'auto' }}>
+      <div className="flex items-center gap-2 mb-2">
+        <Link href="/customer" className="text-blue-600 hover:underline flex items-center">
+          <ChevronLeft className="h-4 w-4" />
+          <span>Quay lại</span>
+        </Link>
+      </div>
+    
       <h1 className="text-2xl font-bold mb-6">Dịch vụ</h1>
       
       {/* Categories selector */}
@@ -190,53 +387,254 @@ export default function ServicesPage() {
       </div>
       
       {loading ? (
-        <div className="flex items-center justify-center p-12">
+        <div className="flex items-center justify-center p-12 bg-white rounded-lg shadow-sm border">
           <Loader2 className="animate-spin w-8 h-8 text-blue-600" />
           <span className="ml-2 text-gray-600">Đang tải dịch vụ...</span>
         </div>
       ) : error ? (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center">
+        <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-lg text-center shadow-sm">
           {error}
         </div>
-      ) : !filteredServices.length ? (
-        <div className="bg-gray-50 p-8 rounded-lg text-center">
-          <h3 className="text-xl font-medium text-gray-700">Không có dịch vụ nào</h3>
-          <p className="text-gray-500 mt-2">Không tìm thấy dịch vụ nào thuộc danh mục này.</p>
+      ) : filteredServices.length === 0 ? (
+        <div className="bg-white p-8 rounded-lg text-center shadow-sm border">
+          <h3 className="text-xl font-medium text-gray-700 mb-2">Không có dịch vụ nào</h3>
+          <p className="text-gray-500">Không tìm thấy dịch vụ nào trong danh mục này.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredServices.map((service) => (
-            <div key={service.id} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 transition-all hover:shadow-md">
-              <div className="relative h-48 w-full overflow-hidden">
-                <Image
-                  src={service.imageUrl || getPlaceholderImage(service.name)}
-                  alt={service.name}
-                  fill
-                  className="object-cover"
-                />
+            <div key={service.id} className="bg-white rounded-lg overflow-hidden shadow-sm border hover:shadow-md transition">
+              <div className="bg-gray-200 relative" style={{ minHeight: '200px', height: 'auto' }}>
+                {service.imageUrl ? (
+                  <div className="h-full">
+                    <Image 
+                      src={service.imageUrl} 
+                      alt={service.name}
+                      layout="fill"
+                      objectFit="cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-full flex items-center justify-center bg-blue-100">
+                    <span className="text-blue-600 font-medium">Hình ảnh dịch vụ</span>
+                  </div>
+                )}
               </div>
-              
               <div className="p-5">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-semibold text-gray-800">{service.name}</h3>
-                  <span className="text-blue-600 font-medium">{formatPrice(service.price)}</span>
+                <div className="flex justify-between">
+                  <h3 className="font-bold text-lg">{service.name}</h3>
+                  {service.category && (
+                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-50 text-blue-700">
+                      {categories.find(c => c.id === service.category)?.name || service.category}
+                    </span>
+                  )}
                 </div>
-                
-                <p className="text-gray-600 mt-2 text-sm line-clamp-2">{service.description}</p>
-                
-                <div className="mt-4 flex justify-end">
-                  <button 
-                    className="flex items-center bg-blue-50 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-100 transition"
+                <p className="text-gray-600 text-sm my-3">{service.description}</p>
+                <div className="flex justify-between items-center mt-4 pt-4 border-t">
+                  <span className="font-bold text-xl text-blue-700">{formatPrice(service.price)}</span>
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => handleBookService(service)}
                   >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Đặt dịch vụ
-                  </button>
+
+                    Đặt ngay
+                  </Button>
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+      
+      {/* Service booking dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đặt dịch vụ</DialogTitle>
+            <DialogDescription>
+              Vui lòng chọn số lượng dịch vụ bạn muốn đặt.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedService && (
+            <div className="space-y-4">
+              <div className="p-4 border rounded-md bg-gray-50">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold">{selectedService.name}</h3>
+                    <p className="text-sm text-gray-600">{selectedService.description}</p>
+                    {selectedService.isFixedQuantity && (
+                      <div className="mt-2">
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                          Dịch vụ cố định
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-bold text-blue-700">{formatPrice(selectedService.price)}</span>
+                </div>
+              </div>
+              
+              {/* {!selectedService.isFixedQuantity && (
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Số lượng</Label>
+                  <div className="flex items-center">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      disabled={quantity <= 1}
+                      className="h-9 w-9 p-0"
+                    >
+                      -
+                    </Button>
+                    <Input
+                      id="quantity"
+                      className="h-9 w-20 mx-2 text-center"
+                      value={quantity}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value)
+                        if (!isNaN(value) && value >= 1) {
+                          setQuantity(value)
+                        }
+                      }}
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setQuantity(prev => prev + 1)}
+                      className="h-9 w-9 p-0"
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+              )} */}
+              
+              <div className="flex justify-between items-center pt-4 border-t">
+                <span className="text-sm font-medium">Tổng tiền:</span>
+                <span className="font-bold text-xl text-blue-700">
+                  {formatPrice(selectedService.price * (selectedService.isFixedQuantity ? 1 : quantity))}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmServiceBooking}
+            >
+              Tiếp tục
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Booking selection dialog */}
+      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chọn đặt phòng</DialogTitle>
+            <DialogDescription>
+              {selectedService ? (
+                <div className="mt-2">
+                  <div className="p-3 bg-gray-50 rounded-md mb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">{selectedService.name}</h3>
+                        {selectedService.isFixedQuantity && (
+                          <div className="mt-1">
+                            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                              Dịch vụ cố định
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="font-medium">{formatPrice(selectedService.price)}</span>
+                    </div>
+                  </div>
+                  <p>Vui lòng chọn đặt phòng bạn muốn thêm dịch vụ.</p>
+                </div>
+              ) : (
+                <p>Vui lòng chọn đặt phòng bạn muốn thêm dịch vụ.</p>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {loadingBookings ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="animate-spin w-6 h-6 text-blue-600 mr-2" />
+                <span>Đang tải danh sách đặt phòng...</span>
+              </div>
+            ) : bookings.length === 0 ? (
+              <div className="text-center py-8">
+                <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-2" />
+                <h3 className="font-medium text-lg">Không có đặt phòng nào</h3>
+                <p className="text-gray-600 text-sm mt-1">Bạn cần đặt phòng trước khi đặt dịch vụ.</p>
+                <Button 
+                  className="mt-4" 
+                  variant="outline"
+                  onClick={() => router.push('/customer/search')}
+                >
+                  Đặt phòng ngay
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {bookings.map(booking => (
+                  <div
+                    key={booking.id}
+                    className={`p-4 border rounded-md cursor-pointer transition-all ${
+                      selectedBookingId === booking.id.toString()
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'hover:border-gray-300'
+                    }`}
+                    onClick={() => setSelectedBookingId(booking.id.toString())}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium">{booking.roomName}</h3>
+                        <p className="text-sm text-gray-600">Mã đặt phòng: #{booking.id}</p>
+                      </div>
+                      {selectedBookingId === booking.id.toString() && (
+                        <CheckCircle className="w-5 h-5 text-blue-600" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setBookingDialogOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              disabled={!selectedBookingId || loadingBookings || bookings.length === 0}
+              onClick={addServiceToBooking}
+            >
+              Đặt dịch vụ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

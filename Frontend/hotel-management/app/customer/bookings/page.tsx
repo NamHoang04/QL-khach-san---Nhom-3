@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { get } from "@/lib/api-service"
 import { shouldUseMockData } from "@/lib/config"
 import { format } from "date-fns"
+import { vi } from "date-fns/locale"
 import { 
   CalendarClock, 
   CheckCircle2, 
@@ -12,9 +13,20 @@ import {
   CreditCard, 
   Hotel, 
   Loader2, 
-  XCircle 
+  XCircle,
+  CalendarDays,
+  ChevronRight,
+  Filter,
+  Info,
+  Search,
+  ChevronLeft
 } from "lucide-react"
 import Link from "next/link"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 
 interface Booking {
   id: number
@@ -27,11 +39,14 @@ interface Booking {
   status: string
 }
 
+type StatusType = 'all' | 'confirmed' | 'pending' | 'completed' | 'cancelled'
+
 export default function MyBookingsPage() {
   const { user } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [activeStatus, setActiveStatus] = useState<StatusType>('all')
   
   useEffect(() => {
     const fetchBookings = async () => {
@@ -72,6 +87,16 @@ export default function MyBookingsPage() {
               checkIn: "2023-11-10T14:00:00",
               checkOut: "2023-11-12T12:00:00",
               status: "Completed"
+            },
+            {
+              id: 4,
+              bookingCode: "BK0004",
+              roomId: 201,
+              roomNumber: "201",
+              roomTypeName: "Premium Ocean View",
+              checkIn: "2023-10-15T14:00:00",
+              checkOut: "2023-10-18T12:00:00",
+              status: "Cancelled"
             }
           ]
           setBookings(mockBookings)
@@ -95,15 +120,15 @@ export default function MyBookingsPage() {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'confirmed':
-        return 'bg-green-100 text-green-800'
+        return 'bg-green-100 text-green-800 border-green-200'
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'cancelled':
-        return 'bg-red-100 text-red-800'
+        return 'bg-red-100 text-red-800 border-red-200'
       case 'completed':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-blue-100 text-blue-800 border-blue-200'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
   
@@ -123,6 +148,22 @@ export default function MyBookingsPage() {
     }
   }
   
+  // Get status text in Vietnamese
+  const getStatusText = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        return 'Đã xác nhận'
+      case 'pending':
+        return 'Đang xử lý'
+      case 'cancelled':
+        return 'Đã hủy'
+      case 'completed':
+        return 'Đã hoàn thành'
+      default:
+        return status
+    }
+  }
+  
   // Calculate duration of stay
   const calculateDuration = (checkIn: string, checkOut: string) => {
     const start = new Date(checkIn)
@@ -137,86 +178,190 @@ export default function MyBookingsPage() {
     return format(new Date(dateString), 'dd/MM/yyyy')
   }
   
+  // Format full date and time with day of week
+  const formatFullDate = (dateString: string) => {
+    return format(new Date(dateString), 'EEEE, dd/MM/yyyy', { locale: vi })
+  }
+  
+  // Filter bookings by status
+  const filteredBookings = activeStatus === 'all' 
+    ? bookings 
+    : bookings.filter(booking => booking.status.toLowerCase() === activeStatus)
+  
+  // Count bookings by status
+  const confirmedCount = bookings.filter(b => b.status.toLowerCase() === 'confirmed').length
+  const pendingCount = bookings.filter(b => b.status.toLowerCase() === 'pending').length
+  const completedCount = bookings.filter(b => b.status.toLowerCase() === 'completed').length
+  const cancelledCount = bookings.filter(b => b.status.toLowerCase() === 'cancelled').length
+  
   return (
-    <div className="container max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Đặt phòng của tôi</h1>
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Link href="/customer" className="text-blue-600 hover:underline flex items-center">
+          <ChevronLeft className="h-4 w-4" />
+          <span>Quay lại</span>
+        </Link>
+      </div>
+      
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Đặt phòng của tôi</h1>
+          <p className="text-gray-500 mt-1">Quản lý tất cả các đặt phòng của bạn</p>
+        </div>
+        
+        <Link href="/customer/search">
+          <Button>
+            <Search className="w-4 h-4 mr-2" />
+            Tìm phòng mới
+          </Button>
+        </Link>
+      </div>
       
       {loading ? (
-        <div className="flex items-center justify-center p-12">
-          <Loader2 className="animate-spin w-8 h-8 text-blue-600" />
-          <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
-        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center p-12">
+            <Loader2 className="animate-spin w-8 h-8 text-blue-600" />
+            <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
+          </CardContent>
+        </Card>
       ) : error ? (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center">
-          {error}
-        </div>
-      ) : !bookings.length ? (
-        <div className="bg-gray-50 p-8 rounded-lg text-center">
-          <CalendarClock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-medium text-gray-700 mb-2">Chưa có đặt phòng nào</h3>
-          <p className="text-gray-500 mb-4">Bạn chưa đặt phòng nào. Hãy tìm và đặt phòng ngay để có trải nghiệm tuyệt vời.</p>
-          <Link href="/customer/search" className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">
-            Tìm phòng
-          </Link>
-        </div>
-      ) : (
-        <div className="grid gap-6">
-          {bookings.map((booking) => (
-            <div key={booking.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-              <div className="p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-800">{booking.roomTypeName}</h3>
-                    <p className="text-gray-600 mt-1 flex items-center">
-                      <Hotel className="w-4 h-4 mr-1" /> Phòng {booking.roomNumber}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${getStatusColor(booking.status)}`}>
-                      {getStatusIcon(booking.status)}
-                      <span className="ml-1">{booking.status}</span>
-                    </span>
-                    <span className="text-xs text-gray-500">#{booking.bookingCode}</span>
-                  </div>
-                </div>
-                
-                <div className="border-t border-gray-200 pt-4 pb-2">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm text-gray-500">Nhận phòng</div>
-                      <div className="font-medium text-gray-900">{formatDate(booking.checkIn)}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Trả phòng</div>
-                      <div className="font-medium text-gray-900">{formatDate(booking.checkOut)}</div>
-                    </div>
-                  </div>
-                  <div className="mt-3 text-sm text-gray-600">
-                    <span className="font-medium text-gray-700">{calculateDuration(booking.checkIn, booking.checkOut)} đêm</span>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center mt-4">
-                  <Link 
-                    href={`/customer/booking/${booking.id}`} 
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    Xem chi tiết
-                  </Link>
-                  
-                  {booking.status.toLowerCase() === 'confirmed' && (
-                    <Link 
-                      href={`/customer/payments/booking/${booking.id}`} 
-                      className="inline-flex items-center text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100"
-                    >
-                      <CreditCard className="w-4 h-4 mr-1" />
-                      Thanh toán
-                    </Link>
-                  )}
-                </div>
-              </div>
+        <Card className="border-red-200">
+          <CardContent className="p-6">
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center">
+              {error}
             </div>
-          ))}
+          </CardContent>
+        </Card>
+      ) : !bookings.length ? (
+        <Card>
+          <CardContent className="p-8 flex flex-col items-center">
+            <CalendarClock className="w-16 h-16 text-gray-300 mb-4" />
+            <h3 className="text-xl font-medium text-gray-700 mb-2">Chưa có đặt phòng nào</h3>
+            <p className="text-gray-500 mb-4 text-center max-w-md">Bạn chưa đặt phòng nào. Hãy tìm và đặt phòng ngay để có trải nghiệm tuyệt vời.</p>
+            <Link href="/customer/search">
+              <Button size="lg" className="mt-2">
+                <Hotel className="w-4 h-4 mr-2" />
+                Tìm phòng ngay
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {/* Status Filters */}
+          <Card>
+            <CardContent className="p-4">
+              <Tabs 
+                defaultValue="all" 
+                value={activeStatus}
+                onValueChange={(value) => setActiveStatus(value as StatusType)}
+                className="w-full"
+              >
+                <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
+                  <TabsTrigger value="all" className="text-center">
+                    Tất cả
+                    <Badge variant="secondary" className="ml-2 bg-gray-100">{bookings.length}</Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="confirmed" className="text-center">
+                    Đã xác nhận
+                    {confirmedCount > 0 && <Badge variant="secondary" className="ml-2 bg-green-100">{confirmedCount}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value="pending" className="text-center">
+                    Đang xử lý
+                    {pendingCount > 0 && <Badge variant="secondary" className="ml-2 bg-yellow-100">{pendingCount}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value="completed" className="text-center">
+                    Hoàn thành
+                    {completedCount > 0 && <Badge variant="secondary" className="ml-2 bg-blue-100">{completedCount}</Badge>}
+                  </TabsTrigger>
+                  <TabsTrigger value="cancelled" className="text-center">
+                    Đã hủy
+                    {cancelledCount > 0 && <Badge variant="secondary" className="ml-2 bg-red-100">{cancelledCount}</Badge>}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </CardContent>
+          </Card>
+          
+          {/* Booking List */}
+          <div className="grid gap-6">
+            {filteredBookings.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <Filter className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-gray-700">Không tìm thấy đặt phòng</h3>
+                  <p className="text-gray-500 text-sm mt-1">Không có đặt phòng nào khớp với bộ lọc hiện tại</p>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredBookings.map((booking) => (
+                <Card key={booking.id} className="overflow-hidden transition-shadow hover:shadow-md">
+                  <CardHeader className="p-5 pb-3 flex flex-row justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg font-bold">{booking.roomTypeName}</CardTitle>
+                        <Badge variant="outline" className="font-normal">#{booking.bookingCode}</Badge>
+                      </div>
+                      <CardDescription className="mt-1 flex items-center gap-1">
+                        <Hotel className="w-3.5 h-3.5" />
+                        <span>Phòng {booking.roomNumber}</span>
+                      </CardDescription>
+                    </div>
+                    <Badge className={`${getStatusColor(booking.status)} flex items-center gap-1.5`}>
+                      {getStatusIcon(booking.status)}
+                      {getStatusText(booking.status)}
+                    </Badge>
+                  </CardHeader>
+                  
+                  <CardContent className="p-5 pt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-500 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" /> Nhận phòng
+                        </span>
+                        <span className="font-medium mt-0.5">{formatDate(booking.checkIn)}</span>
+                        <span className="text-xs text-gray-500 capitalize">{formatFullDate(booking.checkIn)}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-500 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" /> Trả phòng
+                        </span>
+                        <span className="font-medium mt-0.5">{formatDate(booking.checkOut)}</span>
+                        <span className="text-xs text-gray-500 capitalize">{formatFullDate(booking.checkOut)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 inline-flex items-center px-2.5 py-1 bg-blue-50 text-blue-700 rounded text-sm">
+                      <CalendarDays className="w-3.5 h-3.5 mr-1" />
+                      <span className="font-medium">{calculateDuration(booking.checkIn, booking.checkOut)} đêm</span>
+                    </div>
+                  </CardContent>
+                  
+                  <Separator />
+                  
+                  <CardFooter className="p-4 flex justify-between items-center">
+                    <Link 
+                      href={`/customer/booking/${booking.id}`} 
+                      className="text-blue-600 hover:text-blue-800 flex items-center"
+                    >
+                      <Info className="w-4 h-4 mr-1" />
+                      <span>Xem chi tiết</span>
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Link>
+                    
+                    {booking.status.toLowerCase() === 'confirmed' && (
+                      <Link href={`/customer/payments/booking/${booking.id}`}>
+                        <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50">
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Thanh toán
+                        </Button>
+                      </Link>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>

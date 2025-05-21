@@ -7,10 +7,21 @@ import { shouldUseMockData } from "@/lib/config"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, Trash2, Heart, Star, Hotel, Coffee, Search, CalendarDays, Utensils, Car, Dumbbell, Waves, Wifi, ShoppingBag } from "lucide-react"
+import { Loader2, Trash2, Heart, Star, Hotel, Coffee, Search, CalendarDays, Utensils, Car, Dumbbell, Waves, Wifi, ShoppingBag, AlertTriangle, CheckCircle, Plus, ChevronLeft } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
 interface SavedRoom {
   id: number
@@ -33,14 +44,30 @@ interface SavedService {
   imageUrl?: string
   description?: string
   savedAt: string
+  isFixedQuantity?: boolean
+}
+
+interface Booking {
+  id: string | number
+  roomName: string
 }
 
 export default function SavedPage() {
+  const router = useRouter()
   const { user } = useAuth()
   const [savedRooms, setSavedRooms] = useState<SavedRoom[]>([])
   const [savedServices, setSavedServices] = useState<SavedService[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  
+  // Service booking state
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
+  const [selectedService, setSelectedService] = useState<SavedService | null>(null)
+  const [quantity, setQuantity] = useState(1)
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [loadingBookings, setLoadingBookings] = useState(false)
+  const [selectedBookingId, setSelectedBookingId] = useState<string>("")
   
   useEffect(() => {
     const fetchSavedItems = async () => {
@@ -49,8 +76,31 @@ export default function SavedPage() {
       try {
         setLoading(true)
         
+        // Check localStorage for saved items
+        const savedRoomsStr = localStorage.getItem('saved_rooms')
+        const savedServicesStr = localStorage.getItem('saved_services')
+        
+        let localRooms: SavedRoom[] = []
+        let localServices: SavedService[] = []
+        
+        if (savedRoomsStr) {
+          try {
+            localRooms = JSON.parse(savedRoomsStr)
+          } catch (err) {
+            console.error("Error parsing saved rooms from localStorage:", err)
+          }
+        }
+        
+        if (savedServicesStr) {
+          try {
+            localServices = JSON.parse(savedServicesStr)
+          } catch (err) {
+            console.error("Error parsing saved services from localStorage:", err)
+          }
+        }
+        
         if (shouldUseMockData()) {
-          // Mock data
+          // Mock data - merge with localStorage data
           const mockRooms: SavedRoom[] = [
             {
               id: 1,
@@ -107,19 +157,55 @@ export default function SavedPage() {
               imageUrl: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874",
               description: "Dịch vụ spa và massage cao cấp",
               savedAt: "2023-12-12T16:30:00"
+            },
+            {
+              id: 3,
+              serviceId: 2,
+              serviceName: "Đưa đón sân bay",
+              price: 400000,
+              category: "transport",
+              imageUrl: "https://images.unsplash.com/photo-1549194898-0cb3ed2fa95e",
+              description: "Dịch vụ đưa đón sân bay sang trọng, thoải mái",
+              savedAt: "2023-12-09T11:45:00",
+              isFixedQuantity: true
             }
           ]
           
-          setSavedRooms(mockRooms)
-          setSavedServices(mockServices)
+          // Merge mock data with localStorage data
+          const combinedRooms = [...localRooms, ...mockRooms.filter(room => 
+            !localRooms.some(localRoom => localRoom.roomId === room.roomId)
+          )]
+          
+          const combinedServices = [...localServices, ...mockServices.filter(service => 
+            !localServices.some(localService => localService.serviceId === service.serviceId)
+          )]
+          
+          setSavedRooms(combinedRooms)
+          setSavedServices(combinedServices)
         } else {
           // If API is available
           // Note: Backend needs endpoints for fetching saved items
-          const roomsData = await get<SavedRoom[]>(`Favorites/rooms/${user.id}`)
-          const servicesData = await get<SavedService[]>(`Favorites/services/${user.id}`)
-          
-          setSavedRooms(roomsData)
-          setSavedServices(servicesData)
+          try {
+            const roomsData = await get<SavedRoom[]>(`Favorites/rooms/${user.id}`)
+            const servicesData = await get<SavedService[]>(`Favorites/services/${user.id}`)
+            
+            // Merge API data with localStorage data
+            const combinedRooms = [...localRooms, ...roomsData.filter(room => 
+              !localRooms.some(localRoom => localRoom.roomId === room.roomId)
+            )]
+            
+            const combinedServices = [...localServices, ...servicesData.filter(service => 
+              !localServices.some(localService => localService.serviceId === service.serviceId)
+            )]
+            
+            setSavedRooms(combinedRooms)
+            setSavedServices(combinedServices)
+          } catch (err) {
+            console.error("Error fetching saved items from API:", err)
+            // Fall back to localStorage data only
+            setSavedRooms(localRooms)
+            setSavedServices(localServices)
+          }
         }
       } catch (err) {
         console.error("Error fetching saved items:", err)
@@ -159,15 +245,179 @@ export default function SavedPage() {
   
   const removeFromSaved = (type: 'room' | 'service', id: number) => {
     if (type === 'room') {
-      setSavedRooms(prev => prev.filter(room => room.id !== id))
+      const newSavedRooms = savedRooms.filter(room => room.id !== id)
+      setSavedRooms(newSavedRooms)
+      
+      // Update localStorage
+      localStorage.setItem('saved_rooms', JSON.stringify(newSavedRooms))
     } else {
-      setSavedServices(prev => prev.filter(service => service.id !== id))
+      const newSavedServices = savedServices.filter(service => service.id !== id)
+      setSavedServices(newSavedServices)
+      
+      // Update localStorage
+      localStorage.setItem('saved_services', JSON.stringify(newSavedServices))
     }
     
     toast.success(type === 'room' ? "Đã xóa phòng khỏi danh sách yêu thích" : "Đã xóa dịch vụ khỏi danh sách yêu thích")
     
     // In a real implementation, you would call an API to remove the item from saved
     // e.g. delete(`Favorites/${type}/${id}`)
+  }
+  
+  // Book a room directly
+  const bookRoom = (roomId: number) => {
+    router.push(`/customer/room/${roomId}`)
+  }
+  
+  // Prepare to book a service
+  const handleBookService = (service: SavedService) => {
+    setSelectedService(service)
+    setQuantity(1) // Always reset to 1 when opening dialog
+    
+    // For fixed quantity services, skip the quantity selection dialog
+    if (service.isFixedQuantity) {
+      setBookingDialogOpen(true)
+      fetchActiveBookings()
+    } else {
+      setDialogOpen(true)
+    }
+  }
+  
+  // Fetch active bookings
+  const fetchActiveBookings = () => {
+    setLoadingBookings(true)
+    
+    // In a real app, you would fetch this from the API
+    if (shouldUseMockData()) {
+      // Mock booking data
+      const mockBookings = [
+        { id: 1, roomName: "Phòng Deluxe King - 101" },
+        { id: 2, roomName: "Phòng Premium Double - 203" },
+        { id: 3, roomName: "Suite Biển - 305" },
+      ]
+      
+      setTimeout(() => {
+        setBookings(mockBookings)
+        setLoadingBookings(false)
+      }, 500)
+    } else {
+      // Real API call would go here
+      get<Booking[]>('Bookings/active')
+        .then(data => {
+          setBookings(data)
+        })
+        .catch(err => {
+          console.error("Error fetching bookings:", err)
+          toast.error("Không thể tải danh sách đặt phòng.")
+        })
+        .finally(() => {
+          setLoadingBookings(false)
+        })
+    }
+  }
+  
+  // Confirm service booking - only for variable quantity services
+  const confirmServiceBooking = () => {
+    if (!selectedService) return
+    
+    // Show booking selection dialog
+    setBookingDialogOpen(true)
+    fetchActiveBookings()
+  }
+  
+  // Add service to selected booking
+  const addServiceToBooking = () => {
+    if (!selectedService || !selectedBookingId) {
+      toast.error("Vui lòng chọn phòng đã đặt để thêm dịch vụ")
+      return
+    }
+    
+    // For fixed quantity services, always use quantity of 1
+    const serviceQuantity = selectedService.isFixedQuantity ? 1 : quantity
+    
+    const bookedService = {
+      id: selectedService.serviceId,
+      name: selectedService.serviceName,
+      price: selectedService.price,
+      quantity: serviceQuantity,
+      totalPrice: selectedService.price * serviceQuantity
+    }
+    
+    // Get current booking services from localStorage
+    const storageKey = `booking_services_${selectedBookingId}`
+    const existingServicesJson = localStorage.getItem(storageKey)
+    let services = []
+    
+    if (existingServicesJson) {
+      try {
+        services = JSON.parse(existingServicesJson)
+        
+        // For fixed quantity services, check if it already exists - don't allow duplicates
+        if (selectedService.isFixedQuantity) {
+          const existingIndex = services.findIndex((s: any) => s.id === bookedService.id)
+          if (existingIndex >= 0) {
+            toast.error(`Dịch vụ "${selectedService.serviceName}" đã được đặt và không thể đặt thêm`)
+            setBookingDialogOpen(false)
+            setSelectedService(null)
+            setSelectedBookingId("")
+            return
+          }
+          // Add new fixed service
+          services.push(bookedService)
+        } else {
+          // For regular services, update quantity if exists
+          const existingIndex = services.findIndex((s: any) => s.id === bookedService.id)
+          
+          if (existingIndex >= 0) {
+            // Update existing service
+            services[existingIndex] = {
+              ...services[existingIndex],
+              quantity: services[existingIndex].quantity + bookedService.quantity,
+              totalPrice: services[existingIndex].price * (services[existingIndex].quantity + bookedService.quantity)
+            }
+          } else {
+            // Add new service
+            services.push(bookedService)
+          }
+        }
+      } catch (err) {
+        console.error("Error parsing services from localStorage:", err)
+        // Start fresh if there's an error
+        services = [bookedService]
+      }
+    } else {
+      // No existing services, add the new one
+      services = [bookedService]
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem(storageKey, JSON.stringify(services))
+    
+    // Close dialogs
+    setDialogOpen(false)
+    setBookingDialogOpen(false)
+    
+    // Reset state
+    setSelectedService(null)
+    setQuantity(1)
+    setSelectedBookingId("")
+    
+    // Show success message
+    toast.success(
+      <div className="flex items-center">
+        <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
+        <div>
+          <p className="font-medium">Đã thêm dịch vụ vào đặt phòng</p>
+          <p className="text-sm">{bookedService.name}{!selectedService.isFixedQuantity && ` (${serviceQuantity})`}</p>
+        </div>
+      </div>,
+      {
+        action: {
+          label: "Xem chi tiết",
+          onClick: () => router.push(`/customer/booking/${selectedBookingId}`)
+        }
+      }
+    )
   }
   
   const renderRooms = () => {
@@ -230,11 +480,21 @@ export default function SavedPage() {
                   <span className="text-sm text-gray-500">/đêm</span>
                 </div>
                 
-                <Link href={`/customer/room/${room.roomId}`}>
-                  <Button variant="outline" className="hover:bg-blue-50 hover:text-blue-600">
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="hover:bg-blue-50 hover:text-blue-600"
+                    onClick={() => router.push(`/customer/room/${room.roomId}`)}
+                  >
                     Chi tiết
                   </Button>
-                </Link>
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => bookRoom(room.roomId)}
+                  >
+                    Đặt phòng
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -284,11 +544,23 @@ export default function SavedPage() {
               >
                 <Trash2 className="w-4 h-4 text-red-500" />
               </button>
+              
+              {service.isFixedQuantity && (
+                <span className="absolute bottom-2 left-2 text-xs px-2 py-1 bg-blue-600/80 text-white rounded-full">
+                  Dịch vụ cố định
+                </span>
+              )}
             </div>
             
             <CardContent className="p-5">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold text-lg">{service.serviceName}</h3>
+              <div className="flex items-start gap-2 mb-2">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">{service.serviceName}</h3>
+                  <div className="flex items-center text-sm text-gray-600 mt-1">
+                    {getServiceIcon(service.category)}
+                    <span className="ml-1 capitalize">{service.category}</span>
+                  </div>
+                </div>
               </div>
               
               <p className="text-gray-500 text-sm mb-3 line-clamp-2">{service.description}</p>
@@ -296,11 +568,13 @@ export default function SavedPage() {
               <div className="flex justify-between items-center">
                 <span className="font-bold text-blue-600">{formatPrice(service.price)}</span>
                 
-                <Link href="/customer/services">
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                    Đặt dịch vụ
-                  </Button>
-                </Link>
+                <Button 
+                  size="sm" 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={() => handleBookService(service)}
+                >
+                  Đặt dịch vụ
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -308,7 +582,7 @@ export default function SavedPage() {
       </div>
     )
   }
-  
+
   return (
     <div className="container max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Đã lưu</h1>
@@ -319,31 +593,223 @@ export default function SavedPage() {
           <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
         </div>
       ) : error ? (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center">
+        <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-lg text-center shadow-sm">
           {error}
         </div>
       ) : (
         <Tabs defaultValue="rooms" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="rooms" className="flex items-center">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="rooms" className="text-center">
               <Hotel className="w-4 h-4 mr-2" />
-              Phòng đã lưu ({savedRooms.length})
+              Phòng
+              {savedRooms.length > 0 && <span className="ml-2 inline-block bg-blue-100 text-blue-800 text-xs rounded-full px-2">{savedRooms.length}</span>}
             </TabsTrigger>
-            <TabsTrigger value="services" className="flex items-center">
+            <TabsTrigger value="services" className="text-center">
               <Coffee className="w-4 h-4 mr-2" />
-              Dịch vụ đã lưu ({savedServices.length})
+              Dịch vụ
+              {savedServices.length > 0 && <span className="ml-2 inline-block bg-blue-100 text-blue-800 text-xs rounded-full px-2">{savedServices.length}</span>}
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="rooms">
+          <TabsContent value="rooms" className="space-y-6">
             {renderRooms()}
           </TabsContent>
           
-          <TabsContent value="services">
+          <TabsContent value="services" className="space-y-6">
             {renderServices()}
           </TabsContent>
         </Tabs>
       )}
+      
+      {/* Service booking dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đặt dịch vụ</DialogTitle>
+            <DialogDescription>
+              Vui lòng chọn số lượng dịch vụ bạn muốn đặt.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedService && (
+            <div className="space-y-4">
+              <div className="p-4 border rounded-md bg-gray-50">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold">{selectedService.serviceName}</h3>
+                    <p className="text-sm text-gray-600">{selectedService.description}</p>
+                    {selectedService.isFixedQuantity && (
+                      <div className="mt-2">
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                          Dịch vụ cố định
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-bold text-blue-700">{formatPrice(selectedService.price)}</span>
+                </div>
+              </div>
+              
+              {/* {!selectedService.isFixedQuantity && (
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Số lượng</Label>
+                  <div className="flex items-center">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      disabled={quantity <= 1}
+                      className="h-9 w-9 p-0"
+                    >
+                      -
+                    </Button>
+                    <Input
+                      id="quantity"
+                      className="h-9 w-20 mx-2 text-center"
+                      value={quantity}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value)
+                        if (!isNaN(value) && value >= 1) {
+                          setQuantity(value)
+                        }
+                      }}
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setQuantity(prev => prev + 1)}
+                      className="h-9 w-9 p-0"
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+              )} */}
+              
+              <div className="flex justify-between items-center pt-4 border-t">
+                <span className="text-sm font-medium">Tổng tiền:</span>
+                <span className="font-bold text-xl text-blue-700">
+                  {formatPrice(selectedService.price * (selectedService.isFixedQuantity ? 1 : quantity))}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmServiceBooking}
+            >
+              Tiếp tục
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Booking selection dialog */}
+      <Dialog open={bookingDialogOpen} onOpenChange={setBookingDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chọn đặt phòng</DialogTitle>
+            <DialogDescription>
+              {selectedService ? (
+                <div className="mt-2">
+                  <div className="p-3 bg-gray-50 rounded-md mb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">{selectedService.serviceName}</h3>
+                        {selectedService.isFixedQuantity && (
+                          <div className="mt-1">
+                            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                              Dịch vụ cố định
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="font-medium">{formatPrice(selectedService.price)}</span>
+                    </div>
+                  </div>
+                  <p>Vui lòng chọn đặt phòng bạn muốn thêm dịch vụ.</p>
+                </div>
+              ) : (
+                <p>Vui lòng chọn đặt phòng bạn muốn thêm dịch vụ.</p>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {loadingBookings ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="animate-spin w-6 h-6 text-blue-600 mr-2" />
+                <span>Đang tải danh sách đặt phòng...</span>
+              </div>
+            ) : bookings.length === 0 ? (
+              <div className="text-center py-8">
+                <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-2" />
+                <h3 className="font-medium text-lg">Không có đặt phòng nào</h3>
+                <p className="text-gray-600 text-sm mt-1">Bạn cần đặt phòng trước khi đặt dịch vụ.</p>
+                <Button 
+                  className="mt-4" 
+                  variant="outline"
+                  onClick={() => router.push('/customer/search')}
+                >
+                  Đặt phòng ngay
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {bookings.map(booking => (
+                  <div
+                    key={booking.id}
+                    className={`p-4 border rounded-md cursor-pointer transition-all ${
+                      selectedBookingId === booking.id.toString()
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'hover:border-gray-300'
+                    }`}
+                    onClick={() => setSelectedBookingId(booking.id.toString())}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium">{booking.roomName}</h3>
+                        <p className="text-sm text-gray-600">Mã đặt phòng: #{booking.id}</p>
+                      </div>
+                      {selectedBookingId === booking.id.toString() && (
+                        <CheckCircle className="w-5 h-5 text-blue-600" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setBookingDialogOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              disabled={!selectedBookingId || loadingBookings || bookings.length === 0}
+              onClick={addServiceToBooking}
+            >
+              Đặt dịch vụ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

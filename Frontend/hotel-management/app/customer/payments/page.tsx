@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context"
 import { get } from "@/lib/api-service"
 import { shouldUseMockData } from "@/lib/config"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -34,6 +35,9 @@ interface Invoice {
 
 export default function PaymentsPage() {
   const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState(tabParam || "pending")
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -105,6 +109,39 @@ export default function PaymentsPage() {
     
     fetchInvoices()
   }, [user])
+  
+  // Check for pending booking in localStorage and add it to invoices
+  useEffect(() => {
+    const pendingBookingString = localStorage.getItem("pendingBooking")
+    if (pendingBookingString) {
+      try {
+        const pendingBooking = JSON.parse(pendingBookingString)
+        
+        // Create a new invoice from the pending booking
+        const newInvoice: Invoice = {
+          id: Math.floor(Math.random() * 1000000), // Generate temporary id
+          invoiceCode: `INV${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
+          bookingId: Math.floor(Math.random() * 1000000),
+          bookingCode: `BK${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
+          createdAt: pendingBooking.createdAt || new Date().toISOString(),
+          totalAmount: pendingBooking.totalAmount,
+          status: "Pending",
+          paymentMethod: null
+        }
+        
+        // Add to invoices (avoid duplicates by checking if we already have a similar invoice)
+        setInvoices(prev => {
+          const similar = prev.find(inv => 
+            inv.totalAmount === newInvoice.totalAmount && 
+            inv.status.toLowerCase() === "pending"
+          )
+          return similar ? prev : [...prev, newInvoice]
+        })
+      } catch (error) {
+        console.error("Error parsing pending booking:", error)
+      }
+    }
+  }, [])
   
   // Get status badge color and icon based on status
   const getStatusDetails = (status: string) => {
@@ -251,7 +288,7 @@ export default function PaymentsPage() {
           {error}
         </div>
       ) : (
-        <Tabs defaultValue="pending" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="pending" className="relative">
               Chờ thanh toán
