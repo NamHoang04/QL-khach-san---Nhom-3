@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
+import { useSaved } from "@/lib/saved-context"
 import { get } from "@/lib/api-service"
 import { shouldUseMockData } from "@/lib/config"
 import { Button } from "@/components/ui/button"
@@ -23,30 +24,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 
-interface SavedRoom {
-  id: number
-  roomId: number
-  roomNumber: string
-  roomType: string
-  price: number
-  imageUrl?: string
-  description?: string
-  capacity: number
-  savedAt: string
-}
-
-interface SavedService {
-  id: number
-  serviceId: number
-  serviceName: string
-  price: number
-  category: string
-  imageUrl?: string
-  description?: string
-  savedAt: string
-  isFixedQuantity?: boolean
-}
-
 interface Booking {
   id: string | number
   roomName: string
@@ -55,168 +32,25 @@ interface Booking {
 export default function SavedPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const [savedRooms, setSavedRooms] = useState<SavedRoom[]>([])
-  const [savedServices, setSavedServices] = useState<SavedService[]>([])
+  const { savedRooms, savedServices, loading: savedLoading, removeRoom, removeService } = useSaved()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   
   // Service booking state
   const [dialogOpen, setDialogOpen] = useState(false)
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
-  const [selectedService, setSelectedService] = useState<SavedService | null>(null)
+  const [selectedService, setSelectedService] = useState<any | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
   const [selectedBookingId, setSelectedBookingId] = useState<string>("")
   
   useEffect(() => {
-    const fetchSavedItems = async () => {
-      if (!user?.id) return
-      
-      try {
-        setLoading(true)
-        
-        // Check localStorage for saved items
-        const savedRoomsStr = localStorage.getItem('saved_rooms')
-        const savedServicesStr = localStorage.getItem('saved_services')
-        
-        let localRooms: SavedRoom[] = []
-        let localServices: SavedService[] = []
-        
-        if (savedRoomsStr) {
-          try {
-            localRooms = JSON.parse(savedRoomsStr)
-          } catch (err) {
-            console.error("Error parsing saved rooms from localStorage:", err)
-          }
-        }
-        
-        if (savedServicesStr) {
-          try {
-            localServices = JSON.parse(savedServicesStr)
-          } catch (err) {
-            console.error("Error parsing saved services from localStorage:", err)
-          }
-        }
-        
-        if (shouldUseMockData()) {
-          // Mock data - merge with localStorage data
-          const mockRooms: SavedRoom[] = [
-            {
-              id: 1,
-              roomId: 101,
-              roomNumber: "101",
-              roomType: "Deluxe King",
-              price: 1200000,
-              imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427",
-              description: "Phòng sang trọng với tầm nhìn ra biển, không gian rộng rãi và tiện nghi cao cấp.",
-              capacity: 2,
-              savedAt: "2023-12-05T10:30:00"
-            },
-            {
-              id: 2,
-              roomId: 205,
-              roomNumber: "205",
-              roomType: "Suite",
-              price: 2500000,
-              imageUrl: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461",
-              description: "Phòng suite rộng rãi với phòng khách riêng biệt, phù hợp cho gia đình.",
-              capacity: 4,
-              savedAt: "2023-12-10T14:45:00"
-            },
-            {
-              id: 3,
-              roomId: 310,
-              roomNumber: "310",
-              roomType: "Superior Twin",
-              price: 950000,
-              imageUrl: "https://images.unsplash.com/photo-1566665797739-1674de7a421a",
-              description: "Phòng thoải mái với hai giường đơn, phù hợp cho bạn bè hoặc đồng nghiệp.",
-              capacity: 2,
-              savedAt: "2023-12-15T09:15:00"
-            }
-          ]
-          
-          const mockServices: SavedService[] = [
-            {
-              id: 1,
-              serviceId: 1,
-              serviceName: "Buffet sáng",
-              price: 250000,
-              category: "food",
-              imageUrl: "https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf",
-              description: "Buffet sáng với đa dạng món ăn Á - Âu",
-              savedAt: "2023-12-07T08:20:00"
-            },
-            {
-              id: 2,
-              serviceId: 4,
-              serviceName: "Spa & Massage",
-              price: 850000,
-              category: "spa",
-              imageUrl: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874",
-              description: "Dịch vụ spa và massage cao cấp",
-              savedAt: "2023-12-12T16:30:00"
-            },
-            {
-              id: 3,
-              serviceId: 2,
-              serviceName: "Đưa đón sân bay",
-              price: 400000,
-              category: "transport",
-              imageUrl: "https://images.unsplash.com/photo-1549194898-0cb3ed2fa95e",
-              description: "Dịch vụ đưa đón sân bay sang trọng, thoải mái",
-              savedAt: "2023-12-09T11:45:00",
-              isFixedQuantity: true
-            }
-          ]
-          
-          // Merge mock data with localStorage data
-          const combinedRooms = [...localRooms, ...mockRooms.filter(room => 
-            !localRooms.some(localRoom => localRoom.roomId === room.roomId)
-          )]
-          
-          const combinedServices = [...localServices, ...mockServices.filter(service => 
-            !localServices.some(localService => localService.serviceId === service.serviceId)
-          )]
-          
-          setSavedRooms(combinedRooms)
-          setSavedServices(combinedServices)
-        } else {
-          // If API is available
-          // Note: Backend needs endpoints for fetching saved items
-          try {
-            const roomsData = await get<SavedRoom[]>(`Favorites/rooms/${user.id}`)
-            const servicesData = await get<SavedService[]>(`Favorites/services/${user.id}`)
-            
-            // Merge API data with localStorage data
-            const combinedRooms = [...localRooms, ...roomsData.filter(room => 
-              !localRooms.some(localRoom => localRoom.roomId === room.roomId)
-            )]
-            
-            const combinedServices = [...localServices, ...servicesData.filter(service => 
-              !localServices.some(localService => localService.serviceId === service.serviceId)
-            )]
-            
-            setSavedRooms(combinedRooms)
-            setSavedServices(combinedServices)
-          } catch (err) {
-            console.error("Error fetching saved items from API:", err)
-            // Fall back to localStorage data only
-            setSavedRooms(localRooms)
-            setSavedServices(localServices)
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching saved items:", err)
-        setError("Không thể tải danh sách đã lưu. Vui lòng thử lại sau.")
-      } finally {
-        setLoading(false)
-      }
+    // Just set loading to false when savedRooms and savedServices are loaded
+    if (!savedLoading) {
+      setLoading(false)
     }
-    
-    fetchSavedItems()
-  }, [user])
+  }, [savedLoading])
   
   // Format price as VND
   const formatPrice = (price: number): string => {
@@ -243,34 +77,13 @@ export default function SavedPage() {
     }
   }
   
-  const removeFromSaved = (type: 'room' | 'service', id: number) => {
-    if (type === 'room') {
-      const newSavedRooms = savedRooms.filter(room => room.id !== id)
-      setSavedRooms(newSavedRooms)
-      
-      // Update localStorage
-      localStorage.setItem('saved_rooms', JSON.stringify(newSavedRooms))
-    } else {
-      const newSavedServices = savedServices.filter(service => service.id !== id)
-      setSavedServices(newSavedServices)
-      
-      // Update localStorage
-      localStorage.setItem('saved_services', JSON.stringify(newSavedServices))
-    }
-    
-    toast.success(type === 'room' ? "Đã xóa phòng khỏi danh sách yêu thích" : "Đã xóa dịch vụ khỏi danh sách yêu thích")
-    
-    // In a real implementation, you would call an API to remove the item from saved
-    // e.g. delete(`Favorites/${type}/${id}`)
-  }
-  
   // Book a room directly
   const bookRoom = (roomId: number) => {
     router.push(`/customer/room/${roomId}`)
   }
   
   // Prepare to book a service
-  const handleBookService = (service: SavedService) => {
+  const handleBookService = (service: any) => {
     setSelectedService(service)
     setQuantity(1) // Always reset to 1 when opening dialog
     
@@ -455,7 +268,7 @@ export default function SavedPage() {
                 </div>
               )}
               <button 
-                onClick={() => removeFromSaved('room', room.id)}
+                onClick={() => removeRoom(room.roomId)}
                 className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-full hover:bg-red-50 transition"
                 title="Xóa khỏi danh sách yêu thích"
               >
@@ -538,7 +351,7 @@ export default function SavedPage() {
                 </div>
               )}
               <button 
-                onClick={() => removeFromSaved('service', service.id)}
+                onClick={() => removeService(service.serviceId)}
                 className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-full hover:bg-red-50 transition"
                 title="Xóa khỏi danh sách yêu thích"
               >

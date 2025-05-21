@@ -14,9 +14,11 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Star, Filter, Search, Wifi, Coffee, Bath, Users, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { Star, Filter, Search, Wifi, Coffee, Bath, Users, ArrowUpDown, ChevronLeft, ChevronRight, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { useSaved } from "@/lib/saved-context"
+import { toast } from "sonner"
 
 export default function RoomSearchPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -24,6 +26,7 @@ export default function RoomSearchPage() {
   const [sortOption, setSortOption] = useState("recommended")
   const [showFiltersMobile, setShowFiltersMobile] = useState(false)
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+  const { isSavedRoom, saveRoom, removeRoom } = useSaved()
   
   // Sample room types for filtering
   const roomTypes = [
@@ -43,7 +46,7 @@ export default function RoomSearchPage() {
   // Sample rooms data
   const rooms = [
     {
-      id: "1",
+      id: 1,
       name: "Phòng Deluxe View Biển",
       type: "deluxe",
       image: "/room-1.jpg",
@@ -56,7 +59,7 @@ export default function RoomSearchPage() {
       description: "Phòng sang trọng với tầm nhìn ra biển, không gian rộng rãi và tiện nghi cao cấp."
     },
     {
-      id: "2",
+      id: 2,
       name: "Phòng Suite Gia Đình",
       type: "suite",
       image: "/room-2.jpg",
@@ -67,7 +70,7 @@ export default function RoomSearchPage() {
       description: "Phòng suite rộng rãi với 2 phòng ngủ, phù hợp cho gia đình có trẻ em."
     },
     {
-      id: "3",
+      id: 3,
       name: "Phòng Standard Tiết Kiệm",
       type: "standard",
       image: "/room-3.jpg",
@@ -78,7 +81,7 @@ export default function RoomSearchPage() {
       description: "Phòng tiêu chuẩn thoải mái với đầy đủ tiện nghi cơ bản cho du khách."
     },
     {
-      id: "4",
+      id: 4,
       name: "Phòng Family Lớn",
       type: "family",
       image: "/room-4.jpg",
@@ -89,7 +92,7 @@ export default function RoomSearchPage() {
       description: "Phòng gia đình rộng rãi với 2 giường lớn, phù hợp cho gia đình đông người."
     },
     {
-      id: "5",
+      id: 5,
       name: "Phòng Deluxe Hướng Vườn",
       type: "deluxe",
       image: "/room-5.jpg",
@@ -100,7 +103,7 @@ export default function RoomSearchPage() {
       description: "Phòng deluxe yên tĩnh với tầm nhìn ra khu vườn xanh mát của khách sạn."
     },
     {
-      id: "6",
+      id: 6,
       name: "Phòng Suite Cao Cấp",
       type: "suite",
       image: "/room-6.jpg",
@@ -162,6 +165,23 @@ export default function RoomSearchPage() {
     setSelectedAmenities([])
     setPriceRange([500000, 3000000])
     setSearchQuery("")
+  }
+
+  // Toggle save room
+  const toggleSaveRoom = (room: any, event?: React.MouseEvent) => {
+    if (event) {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+    
+    // Ensure we have a numeric ID
+    const roomId = typeof room.id === 'string' ? parseInt(room.id, 10) : room.id
+    
+    if (isSavedRoom(roomId)) {
+      removeRoom(roomId)
+    } else {
+      saveRoom(room)
+    }
   }
 
   // Sidebar filter component
@@ -336,6 +356,16 @@ export default function RoomSearchPage() {
                         Giảm {room.discount}
                       </Badge>
                     )}
+                    {/* Save button */}
+                    <button 
+                      onClick={(e) => toggleSaveRoom(room, e)}
+                      className="absolute top-2 left-2 p-1.5 bg-white/80 rounded-full hover:bg-red-50 transition-colors"
+                      aria-label={isSavedRoom(room.id) ? "Xóa khỏi danh sách yêu thích" : "Lưu vào danh sách yêu thích"}
+                    >
+                      <Heart 
+                        className={`h-5 w-5 ${isSavedRoom(room.id) ? "fill-red-500 text-red-500" : "text-gray-500"}`} 
+                      />
+                    </button>
                   </div>
                   <CardContent className="flex flex-col p-5 md:w-3/5">
                     <div className="flex-1">
