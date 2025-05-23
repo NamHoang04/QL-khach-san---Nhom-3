@@ -89,11 +89,14 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseSwagger();
+app.UseSwaggerUI(c => {
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Hotel Management API v1");
+    c.RoutePrefix = string.Empty; // Set Swagger UI at the root
+});
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    
     // Initialize db with sample data
     using (var scope = app.Services.CreateScope())
     {

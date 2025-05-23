@@ -4223,26 +4223,24 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Precision\\.nuget\\packages\\": {}
+    "C:\\Users\\NamHoang\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Precision\\NewBackend\\HotelManagementAPI\\HotelManagementAPI.csproj",
+      "projectUniqueName": "D:\\2-- Code phat trien ung dung web\\Web final\\Project\\Backend\\HotelManagementAPI\\HotelManagementAPI.csproj",
       "projectName": "HotelManagementAPI",
-      "projectPath": "C:\\Users\\Precision\\NewBackend\\HotelManagementAPI\\HotelManagementAPI.csproj",
-      "packagesPath": "C:\\Users\\Precision\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Precision\\NewBackend\\HotelManagementAPI\\obj\\",
+      "projectPath": "D:\\2-- Code phat trien ung dung web\\Web final\\Project\\Backend\\HotelManagementAPI\\HotelManagementAPI.csproj",
+      "packagesPath": "C:\\Users\\NamHoang\\.nuget\\packages\\",
+      "outputPath": "D:\\2-- Code phat trien ung dung web\\Web final\\Project\\Backend\\HotelManagementAPI\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Precision\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "C:\\Users\\NamHoang\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -4318,7 +4316,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.408/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.409/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

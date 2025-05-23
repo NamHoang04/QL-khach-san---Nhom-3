@@ -1,0 +1,18 @@
+{
+  "runtimeOptions": {
+    "configProperties": {
+      "System.Globalization.Invariant": false
+    }
+  },
+  "launchSettings": {
+    "profiles": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5217",
+      "launchUrl": "",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+} 

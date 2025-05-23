@@ -2,6 +2,7 @@
 
 import { RoleRedirector } from "@/components/common/role-redirector"
 import { useAuth } from "@/lib/auth-context"
+import { login } from "@/lib/auth-service"
 import { redirect } from "next/navigation"
 
 export default function Home() {

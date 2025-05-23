@@ -9,7 +9,6 @@ namespace HotelManagementAPI.DTOs
         public string Username { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Mật khẩu không được để trống")]
-        [StringLength(255, MinimumLength = 6, ErrorMessage = "Mật khẩu phải từ 6-255 kí tự")]
         public string Password { get; set; } = string.Empty;
     }
 
