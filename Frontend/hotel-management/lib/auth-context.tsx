@@ -60,10 +60,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userInfo = await authService.getCurrentUser();
           if (userInfo) {
             const userType = authService.getUserType() as UserRole;
+            const userRole = authService.getUserRole();
+            
+            console.log('Auth context found user:', userInfo.username, 'type:', userType, 'role:', userRole);
+            
             setUser({
               id: userInfo.id,
               username: userInfo.username,
               role: userType,
+              specificRole: userRole || undefined,
               fullName: userInfo.fullName,
               email: userInfo.email
             });
@@ -133,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!user,
     setUser,
     logout,
-    isAdmin: user?.role === "admin",
+    isAdmin: user?.role === "admin" || user?.specificRole === "admin",
     canAccess
   }
 

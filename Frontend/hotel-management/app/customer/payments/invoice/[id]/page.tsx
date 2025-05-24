@@ -27,6 +27,15 @@ import {
 import { toast } from "sonner"
 import Link from "next/link"
 
+interface Service {
+  id: number
+  name: string
+  price: number
+  quantity: number
+  childQuantity?: number
+  totalPrice: number
+}
+
 interface InvoiceDetail {
   id: number
   invoiceCode: string
@@ -45,6 +54,9 @@ interface InvoiceDetail {
   status: string
   paymentMethod?: string
   notes?: string
+  services?: Service[]
+  roomPrice?: number
+  servicesPrice?: number
 }
 
 export default function InvoiceDetailPage() {
@@ -71,6 +83,64 @@ export default function InvoiceDetailPage() {
       try {
         setLoading(true)
         
+        // First, check localStorage for invoice with this ID
+        const allInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+        const localInvoice = allInvoices.find((inv: any) => inv.id.toString() === invoiceId);
+        
+        // Also check for pendingPayment that might contain this invoice
+        const pendingPaymentString = localStorage.getItem("pendingPayment");
+        let pendingPayment = null;
+        if (pendingPaymentString) {
+          try {
+            pendingPayment = JSON.parse(pendingPaymentString);
+            // Check if this payment matches the requested invoice
+            if (pendingPayment.bookingId.toString() === invoiceId) {
+              // Calculate services total
+              const serviceItems = pendingPayment.services || [];
+              const serviceTotal = serviceItems.reduce((sum: number, service: Service) => sum + service.totalPrice, 0);
+              
+              // Create invoice from pendingPayment
+              const invoiceFromPayment: InvoiceDetail = {
+                id: parseInt(invoiceId),
+                invoiceCode: `INV${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
+                customerId: 1,
+                customerName: "Khách hàng",
+                customerPhone: localStorage.getItem("user_phone") || "0901234567",
+                customerEmail: localStorage.getItem("user_email") || "customer@example.com",
+                bookingId: pendingPayment.bookingId,
+                bookingCode: pendingPayment.bookingCode,
+                roomNumber: "Chờ xác nhận",
+                roomType: pendingPayment.roomName,
+                checkIn: pendingPayment.checkInDate,
+                checkOut: pendingPayment.checkOutDate,
+                createdAt: pendingPayment.created,
+                totalAmount: pendingPayment.totalPrice + serviceTotal,
+                roomPrice: pendingPayment.totalPrice,
+                servicesPrice: serviceTotal,
+                services: pendingPayment.services,
+                status: "Pending",
+                paymentMethod: undefined,
+                notes: pendingPayment.services && pendingPayment.services.length > 0
+                  ? `Bao gồm ${pendingPayment.services.length} dịch vụ đi kèm`
+                  : undefined
+              };
+              
+              setInvoice(invoiceFromPayment);
+              setLoading(false);
+              return;
+            }
+          } catch (error) {
+            console.error("Error parsing pending payment:", error);
+          }
+        }
+        
+        // If we found a local invoice, use that
+        if (localInvoice) {
+          setInvoice(localInvoice);
+          setLoading(false);
+          return;
+        }
+        
         if (shouldUseMockData()) {
           // Mock data
           await new Promise(resolve => setTimeout(resolve, 1000))
@@ -90,9 +160,20 @@ export default function InvoiceDetailPage() {
             checkOut: "2023-12-05T12:00:00",
             createdAt: "2023-11-25T10:30:00",
             totalAmount: 2000000,
+            roomPrice: 1800000,
+            servicesPrice: 200000,
             status: parseInt(invoiceId) % 2 === 0 ? "Pending" : "Paid",
             paymentMethod: parseInt(invoiceId) % 2 === 0 ? undefined : "Credit Card",
-            notes: "Bao gồm ăn sáng"
+            notes: "Bao gồm ăn sáng",
+            services: [
+              {
+                id: 1,
+                name: "Buffet sáng",
+                price: 100000,
+                quantity: 2,
+                totalPrice: 200000
+              }
+            ]
           }
           
           setInvoice(mockInvoice)
@@ -175,11 +256,34 @@ export default function InvoiceDetailPage() {
         await new Promise(resolve => setTimeout(resolve, 2000))
         
         // Update local state
-        setInvoice({
+        const updatedInvoice = {
           ...invoice,
           status: "Paid",
           paymentMethod: paymentMethod === 'credit-card' ? 'Credit Card' : 'Bank Transfer'
-        })
+        };
+        setInvoice(updatedInvoice)
+        
+        // Update invoice in localStorage if it exists
+        const allInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
+        const updatedInvoices = allInvoices.map((inv: any) => 
+          inv.id.toString() === invoiceId ? updatedInvoice : inv
+        );
+        
+        // If not in the list, add it
+        if (!allInvoices.some((inv: any) => inv.id.toString() === invoiceId)) {
+          updatedInvoices.push(updatedInvoice);
+        }
+        
+        localStorage.setItem("invoices", JSON.stringify(updatedInvoices));
+        
+        // Clear pendingPayment if this invoice was from there
+        const pendingPaymentString = localStorage.getItem("pendingPayment");
+        if (pendingPaymentString) {
+          const pendingPayment = JSON.parse(pendingPaymentString);
+          if (pendingPayment.bookingId.toString() === invoiceId) {
+            localStorage.removeItem("pendingPayment");
+          }
+        }
         
         setShowSuccess(true)
       } else {
@@ -192,6 +296,15 @@ export default function InvoiceDetailPage() {
         // Fetch updated invoice
         const updatedInvoice = await get<InvoiceDetail>(`Invoices/${invoiceId}`)
         setInvoice(updatedInvoice)
+        
+        // Clear pendingPayment if necessary
+        const pendingPaymentString = localStorage.getItem("pendingPayment");
+        if (pendingPaymentString) {
+          const pendingPayment = JSON.parse(pendingPaymentString);
+          if (pendingPayment.bookingId.toString() === invoiceId) {
+            localStorage.removeItem("pendingPayment");
+          }
+        }
         
         setShowSuccess(true)
       }
@@ -401,18 +514,60 @@ export default function InvoiceDetailPage() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Tiền phòng</span>
-                  <span>{formatPrice(invoice.totalAmount)}</span>
+                  <span>{formatPrice(invoice.roomPrice || (invoice.totalAmount - (invoice.servicesPrice || 0)))}</span>
                 </div>
-                {/* Add more line items if needed */}
+                {invoice.services && invoice.services.length > 0 && (
+                  <div className="flex justify-between">
+                    <span>Dịch vụ đi kèm ({invoice.services.length} dịch vụ)</span>
+                    <span className="font-medium">{formatPrice(invoice.servicesPrice || 0)}</span>
+                  </div>
+                )}
                 <div className="border-t pt-2 font-medium flex justify-between">
-                  <span>Tổng cộng</span>
-                  <span>{formatPrice(invoice.totalAmount)}</span>
+                  <span>Thuế và phí dịch vụ</span>
+                  <span className="font-medium">{formatPrice(invoice.totalAmount * 0.1)}</span>
+                </div>
+                <div className="border-t pt-3 flex justify-between">
+                  <span className="font-medium">Tổng cộng</span>
+                  <span className="font-bold text-xl">{formatPrice(invoice.totalAmount)}</span>
                 </div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+      
+      {/* Services section */}
+      {invoice.services && invoice.services.length > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Dịch vụ đi kèm</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left pb-2">Tên dịch vụ</th>
+                    <th className="text-center pb-2">Số lượng</th>
+                    <th className="text-right pb-2">Giá</th>
+                    <th className="text-right pb-2">Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoice.services.map((service, index) => (
+                    <tr key={index} className="border-b border-gray-100 last:border-0">
+                      <td className="py-2">{service.name}</td>
+                      <td className="py-2 text-center">{service.quantity}</td>
+                      <td className="py-2 text-right">{formatPrice(service.price)}</td>
+                      <td className="py-2 text-right font-medium">{formatPrice(service.totalPrice)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {/* Payment Section (only for pending invoices) */}
       {invoice.status === 'Pending' && (

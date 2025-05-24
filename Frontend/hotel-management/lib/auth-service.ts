@@ -240,6 +240,7 @@ async function mockLogin(credentials: LoginCredentials): Promise<AuthToken> {
         a.username === credentials.username && a.password === credentials.password);
       
       if (admin) {
+        console.log('Admin login successful');
         const token: AuthToken = {
           token: 'mock-admin-token-' + Math.random().toString(36).substring(2, 10),
           expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 giờ
@@ -258,6 +259,7 @@ async function mockLogin(credentials: LoginCredentials): Promise<AuthToken> {
         s.username === credentials.username && s.password === credentials.password);
       
       if (staff) {
+        console.log('Staff login successful');
         const token: AuthToken = {
           token: 'mock-staff-token-' + Math.random().toString(36).substring(2, 10),
           expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 giờ
@@ -276,6 +278,7 @@ async function mockLogin(credentials: LoginCredentials): Promise<AuthToken> {
         c.username === credentials.username && c.password === credentials.password);
         
       if (customer) {
+        console.log('Customer login successful');
         const token: AuthToken = {
           token: 'mock-customer-token-' + Math.random().toString(36).substring(2, 10),
           expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 giờ
@@ -388,6 +391,7 @@ export function isAdmin(): boolean {
 // Lấy loại người dùng đã đăng nhập
 export function getUserType(): 'admin' | 'staff' | 'customer' | null {
   const type = localStorage.getItem(`${AUTH_CONFIG.tokenKey}_type`);
+  console.log('getUserType from localStorage:', type);
   if (type === 'admin' || type === 'staff' || type === 'customer') {
     return type;
   }
@@ -401,7 +405,9 @@ export function getUserId(): string | null {
 
 // Lấy quyền của người dùng đã đăng nhập
 export function getUserRole(): string | null {
-  return localStorage.getItem(`${AUTH_CONFIG.tokenKey}_role`);
+  const role = localStorage.getItem(`${AUTH_CONFIG.tokenKey}_role`);
+  console.log('getUserRole from localStorage:', role);
+  return role;
 }
 
 // Redirect người dùng dựa vào quyền

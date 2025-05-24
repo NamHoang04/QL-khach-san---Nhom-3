@@ -10,7 +10,7 @@ export const API_CONFIG = {
   
   // Whether to use mock data instead of real API (for development/testing)
   // Set to true if backend API is not available yet
-  useMockData: false,
+  useMockData: true,
   
   // Enable this to use mock data as a fallback when API calls fail
   useMockFallback: true,

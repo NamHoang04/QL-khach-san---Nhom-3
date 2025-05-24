@@ -22,15 +22,43 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 
+interface Service {
+  id: number
+  name: string
+  price: number
+  quantity: number
+  childQuantity?: number
+  totalPrice: number
+}
+
+interface PendingPayment {
+  bookingId: number
+  bookingCode: string
+  roomName: string
+  checkInDate: string
+  checkOutDate: string
+  nights: number
+  pricePerNight: number
+  totalPrice: number
+  services: Service[]
+  created: string
+}
+
 interface Invoice {
   id: number
   invoiceCode: string
   bookingId: number
   bookingCode: string
   createdAt: string
-  totalAmount: number
+  totalAmount?: number
   status: string
   paymentMethod?: string | null
+  roomName?: string
+  checkIn?: string
+  checkOut?: string
+  nights?: number
+  services?: Service[]
+  details?: string
 }
 
 export default function PaymentsPage() {
@@ -110,8 +138,9 @@ export default function PaymentsPage() {
     fetchInvoices()
   }, [user])
   
-  // Check for pending booking in localStorage and add it to invoices
+  // Check for pending payment in localStorage and add it to invoices
   useEffect(() => {
+    // First check for pendingBooking (legacy support)
     const pendingBookingString = localStorage.getItem("pendingBooking")
     if (pendingBookingString) {
       try {
@@ -123,8 +152,9 @@ export default function PaymentsPage() {
           invoiceCode: `INV${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
           bookingId: Math.floor(Math.random() * 1000000),
           bookingCode: `BK${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
-          createdAt: pendingBooking.createdAt || new Date().toISOString(),
-          totalAmount: pendingBooking.totalAmount,
+          createdAt: pendingBooking.createdAt || pendingBooking.created || new Date().toISOString(),
+          // Make sure we have a valid totalAmount - check different possible properties
+          totalAmount: pendingBooking.totalAmount || pendingBooking.totalPrice || pendingBooking.pricePerNight * (pendingBooking.nights || 1) || 0,
           status: "Pending",
           paymentMethod: null
         }
@@ -139,6 +169,57 @@ export default function PaymentsPage() {
         })
       } catch (error) {
         console.error("Error parsing pending booking:", error)
+      }
+    }
+
+    // Then check for pendingPayment (new format with services)
+    const pendingPaymentString = localStorage.getItem("pendingPayment")
+    if (pendingPaymentString) {
+      try {
+        const pendingPayment = JSON.parse(pendingPaymentString) as PendingPayment
+        
+        // Calculate total cost including room and services
+        let totalAmount = pendingPayment.totalPrice
+        let serviceDetails = ""
+        
+        // Add service costs if any
+        if (pendingPayment.services && pendingPayment.services.length > 0) {
+          const servicesTotalPrice = pendingPayment.services.reduce((total, service) => total + service.totalPrice, 0)
+          totalAmount += servicesTotalPrice
+          
+          // Create service details for invoice description
+          serviceDetails = ` + ${pendingPayment.services.length} dịch vụ`
+        }
+        
+        // Create a new invoice from the pending payment
+        const newInvoice: Invoice = {
+          id: Math.floor(Math.random() * 1000000), // Generate temporary id
+          invoiceCode: `INV${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
+          bookingId: pendingPayment.bookingId,
+          bookingCode: pendingPayment.bookingCode,
+          createdAt: pendingPayment.created || new Date().toISOString(),
+          totalAmount: totalAmount,
+          status: "Pending",
+          paymentMethod: null,
+          // Add custom properties for display
+          roomName: pendingPayment.roomName,
+          checkIn: pendingPayment.checkInDate, 
+          checkOut: pendingPayment.checkOutDate,
+          nights: pendingPayment.nights,
+          services: pendingPayment.services,
+          details: `${pendingPayment.roomName} (${pendingPayment.nights} đêm)${serviceDetails}`
+        }
+        
+        // Add to invoices (avoid duplicates by checking if already exists)
+        setInvoices(prev => {
+          const similar = prev.find(inv => 
+            inv.bookingCode === newInvoice.bookingCode && 
+            inv.status.toLowerCase() === "pending"
+          )
+          return similar ? prev : [...prev, newInvoice]
+        })
+      } catch (error) {
+        console.error("Error parsing pending payment:", error)
       }
     }
   }, [])
@@ -175,12 +256,24 @@ export default function PaymentsPage() {
   }
   
   // Format date for display
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'dd/MM/yyyy HH:mm')
+  const formatDate = (dateString: string | undefined | null) => {
+    if (!dateString) {
+      return 'Ngày không xác định';
+    }
+    try {
+      return format(new Date(dateString), 'dd/MM/yyyy HH:mm');
+    } catch (error) {
+      console.error('Invalid date format:', dateString);
+      return 'Ngày không hợp lệ';
+    }
   }
   
   // Format price as VND
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number | undefined | null) => {
+    // Check if price is undefined or null
+    if (price === undefined || price === null) {
+      return '0 ₫';
+    }
     return price.toLocaleString('vi-VN') + ' ₫'
   }
   
@@ -225,6 +318,19 @@ export default function PaymentsPage() {
                     <p className="text-gray-500 text-sm mt-1">
                       {formatDate(invoice.createdAt)}
                     </p>
+                    
+                    {/* Show booking details if available */}
+                    {invoice.roomName && (
+                      <div className="mt-3 space-y-1 text-sm text-gray-600">
+                        <p className="font-medium">{invoice.details || invoice.roomName}</p>
+                        {invoice.checkIn && invoice.checkOut && (
+                          <p>
+                            {formatDate(invoice.checkIn)} - {formatDate(invoice.checkOut)}{' '}
+                            ({invoice.nights || 1} đêm)
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${statusDetails.color}`}>
@@ -233,6 +339,21 @@ export default function PaymentsPage() {
                     </span>
                   </div>
                 </div>
+                
+                {/* Show service details if available */}
+                {invoice.services && invoice.services.length > 0 && (
+                  <div className="mt-2 mb-3">
+                    <p className="text-sm text-gray-600 font-medium mb-1">Dịch vụ đi kèm:</p>
+                    <div className="pl-2 border-l-2 border-blue-100">
+                      {invoice.services.map((service, idx) => (
+                        <div key={idx} className="text-sm flex justify-between py-1">
+                          <span>{service.name} x {service.quantity}</span>
+                          <span className="font-medium">{formatPrice(service.totalPrice)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                   <div>

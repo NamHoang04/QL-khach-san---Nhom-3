@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { 
@@ -137,6 +137,8 @@ export default function RoomDetailPage() {
   const params = useParams()
   const router = useRouter()
   const roomId = params.id as string
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+  const shouldFocusBooking = searchParams.get('book') === 'true'
   
   // Find room by ID
   const room = roomsData.find(r => r.id === roomId) || roomsData[0]
@@ -159,6 +161,16 @@ export default function RoomDetailPage() {
   const hasBookedRoom = userBookingHistory.some(
     booking => booking.roomId === roomId && booking.userId === currentUserId && booking.status === "completed"
   )
+
+  // Auto-scroll to booking section if book=true
+  useEffect(() => {
+    if (shouldFocusBooking) {
+      const bookingElement = document.getElementById('booking-section')
+      if (bookingElement) {
+        bookingElement.scrollIntoView({ behavior: 'smooth' })
+      }
+    }
+  }, [shouldFocusBooking])
 
   const showAvailableImages = () => {
     // This is a placeholder. In reality, these would be actual images.
@@ -198,32 +210,30 @@ export default function RoomDetailPage() {
     // Calculate total cost
     const roomPrice = room.discountedPrice || room.price
     const totalNights = Math.max(1, nights)
-    const subtotal = roomPrice * totalNights
-    const taxAndFees = roomPrice * 0.1
-    const totalAmount = subtotal + taxAndFees
+    const totalCost = roomPrice * totalNights
     
     // Create booking object
     const bookingData = {
       roomId: room.id,
       roomName: room.name,
-      checkInDate,
-      checkOutDate,
-      guests: parseInt(guests),
+      roomType: room.type,
+      roomImage: room.images[0],
+      checkInDate: checkInDate,
+      checkOutDate: checkOutDate,
       nights: totalNights,
-      price: roomPrice,
-      subtotal,
-      taxAndFees,
-      totalAmount,
-      createdAt: new Date().toISOString(),
-      status: "Pending"
+      guests: parseInt(guests),
+      pricePerNight: roomPrice,
+      totalPrice: totalCost,
+      status: "pending",
+      created: new Date().toISOString(),
     }
     
-    // Store in localStorage - in a real app, this would be sent to the server
-    localStorage.setItem("pendingBooking", JSON.stringify(bookingData))
+    // Save booking data to localStorage for transfer to the booking confirmation page
+    localStorage.setItem('pendingBooking', JSON.stringify(bookingData))
     
-    // Show notification and redirect to payments page
-    toast.success(`Đã đặt ${room.name} từ ${checkInDate} đến ${checkOutDate} cho ${guests} khách`)
-    router.push("/customer/payments?tab=pending")
+    // Redirect to booking confirmation page
+    toast.success("Đặt phòng thành công! Chuyển đến trang xác nhận...")
+    router.push('/customer/booking')
   }
   
   // Add function to handle review submission
@@ -392,7 +402,7 @@ export default function RoomDetailPage() {
           
           {/* Right column - Booking card */}
           <div>
-            <Card className="sticky top-4">
+            <Card className="sticky top-4" id="booking-section">
               <CardContent className="p-4">
                 <h2 className="text-lg font-bold mb-4">Đặt phòng</h2>
                 

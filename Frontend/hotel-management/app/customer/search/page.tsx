@@ -522,17 +522,35 @@ export default function RoomSearchPage() {
                     </div>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row justify-between items-end mt-4 pt-4 border-t">
-                    <div>
+                  <div className="p-5 border-t">
+                    <div className="flex flex-wrap justify-between items-end gap-3">
                       <div>
-                        <span className="font-bold text-xl text-blue-700">{formatPrice(room.price)}</span>
-                        <span className="text-gray-500"> / đêm</span>
+                        <div className="text-gray-600 text-sm">Giá mỗi đêm</div>
+                        <div className="font-bold text-xl">{formatPrice(room.price)}</div>
                       </div>
-                    </div>
-                    <div className="flex gap-3 mt-3 sm:mt-0">
-                      <Link href={`/customer/room/${room.id}`}>
-                        <Button className="bg-blue-600 hover:bg-blue-700">Xem chi tiết</Button>
-                      </Link>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={(e) => toggleSaveRoom(room, e)}
+                          className="p-2 border rounded-md hover:bg-gray-50"
+                          aria-label={isSavedRoom(room.id) ? "Xóa khỏi danh sách yêu thích" : "Lưu vào danh sách yêu thích"}
+                        >
+                          <Heart className={`h-5 w-5 ${isSavedRoom(room.id) ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
+                        </button>
+                        
+                        <Link 
+                          href={`/customer/room/${room.id}`}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium"
+                        >
+                          Xem chi tiết
+                        </Link>
+                        
+                        <Link 
+                          href={`/customer/room/${room.id}?book=true`}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium"
+                        >
+                          Đặt ngay
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

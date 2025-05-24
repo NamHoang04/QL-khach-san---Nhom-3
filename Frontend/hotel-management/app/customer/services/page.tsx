@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-<<<<<<< HEAD
 import {
   Select,
   SelectContent,
@@ -42,9 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-=======
 import { useSaved } from "@/lib/saved-context"
->>>>>>> b730f349f6dbe75b37a761cc7cac5f2fac1062e7
 
 interface Service {
   id: number
@@ -81,12 +78,9 @@ export default function ServicesPage() {
   const [selectedBookingId, setSelectedBookingId] = useState<string>("")
   const [bookings, setBookings] = useState<Array<{id: string | number, roomName: string}>>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
-<<<<<<< HEAD
   const [showCustomAdultQuantityInput, setShowCustomAdultQuantityInput] = useState(false)
   const [showCustomChildQuantityInput, setShowCustomChildQuantityInput] = useState(false)
-=======
   const { isSavedService, saveService, removeService } = useSaved()
->>>>>>> b730f349f6dbe75b37a761cc7cac5f2fac1062e7
 
   // Service categories
   const categories = [

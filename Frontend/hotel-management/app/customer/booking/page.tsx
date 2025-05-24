@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { get } from "@/lib/api-service"
+import { useRouter } from "next/navigation" 
+import { get, post } from "@/lib/api-service"
 import { shouldUseMockData } from "@/lib/config"
 import { format } from "date-fns"
 import { 
@@ -13,12 +14,18 @@ import {
   Hotel, 
   Loader2, 
   XCircle,
-  ChevronLeft
+  ChevronLeft,
+  Calendar,
+  Users,
 } from "lucide-react"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { toast } from "sonner"
 
 interface Booking {
-  id: number
+  id: number | string
   bookingCode: string
   roomId: number
   roomNumber: string
@@ -28,13 +35,47 @@ interface Booking {
   status: string
 }
 
+interface PendingBooking {
+  id?: number | string
+  roomId: string | number
+  roomName: string
+  checkInDate: string
+  checkOutDate: string
+  nights: number
+  guests: string | number
+  pricePerNight: number
+  totalPrice: number
+}
+
+interface Service {
+  id: number
+  name: string
+  price: number
+  quantity: number
+  childQuantity?: number
+  totalPrice: number
+}
+
 export default function MyBookingsPage() {
+  const router = useRouter()
   const { user } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [pendingBooking, setPendingBooking] = useState<PendingBooking | null>(null)
+  const [pendingServices, setPendingServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   
   useEffect(() => {
+    // Check for pending booking from localStorage
+    const savedPendingBooking = localStorage.getItem('pendingBooking')
+    if (savedPendingBooking) {
+      try {
+        setPendingBooking(JSON.parse(savedPendingBooking))
+      } catch (error) {
+        console.error("Error parsing pending booking:", error)
+      }
+    }
+    
     const fetchBookings = async () => {
       if (!user?.id) return
       
@@ -92,6 +133,62 @@ export default function MyBookingsPage() {
     fetchBookings()
   }, [user])
   
+  // Load pending booking from localStorage
+  useEffect(() => {
+    const pendingBookingString = localStorage.getItem("pendingBooking")
+    if (pendingBookingString) {
+      try {
+        const bookingData = JSON.parse(pendingBookingString)
+        setPendingBooking(bookingData)
+      } catch (err) {
+        console.error("Error parsing pending booking:", err)
+      }
+    }
+  }, [])
+  
+  // Load services for current booking if any
+  useEffect(() => {
+    if (pendingBooking) {
+      const bookingId = pendingBooking.id || 'pending';
+      const storageKey = `booking_services_${String(bookingId)}`;
+      const servicesJson = localStorage.getItem(storageKey);
+      if (servicesJson) {
+        try {
+          const services = JSON.parse(servicesJson);
+          setPendingServices(services);
+        } catch (error) {
+          console.error("Error parsing services:", error);
+        }
+      }
+    }
+  }, [pendingBooking]);
+  
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    return format(new Date(dateString), 'dd/MM/yyyy')
+  }
+  
+  // Format price as VND
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('vi-VN') + ' ₫'
+  }
+
+  // Calculate booking status based on dates
+  const calculateBookingStatus = (checkIn: string) => {
+    const today = new Date()
+    const checkInDate = new Date(checkIn)
+    
+    if (isNaN(checkInDate.getTime())) {
+      return { status: "Error", message: "Invalid date" }
+    }
+    
+    if (checkInDate < today) {
+      return { status: "Past", message: "Đã kết thúc" }
+    } else {
+      return { status: "Upcoming", message: "Sắp tới" }
+    }
+  }
+
   // Get status badge color based on status
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -124,20 +221,151 @@ export default function MyBookingsPage() {
     }
   }
   
-  // Calculate duration of stay
-  const calculateDuration = (checkIn: string, checkOut: string) => {
-    const start = new Date(checkIn)
-    const end = new Date(checkOut)
-    const diffTime = Math.abs(end.getTime() - start.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
+  // Handle confirm booking
+  const handleConfirmBooking = async () => {
+    if (!pendingBooking) return
+    
+    try {
+      // In a real app, this would send the booking to the API
+      // For now, we'll just simulate success
+      
+      if (shouldUseMockData()) {
+        // Simulate API call delay
+        toast.loading("Đang xử lý đặt phòng...");
+        
+        setTimeout(() => {
+          // Create a new confirmed booking
+          const newBooking = {
+            id: Date.now(),
+            bookingCode: `BK${Math.floor(1000 + Math.random() * 9000)}`,
+            roomId: typeof pendingBooking.roomId === 'string' ? parseInt(pendingBooking.roomId) : pendingBooking.roomId,
+            roomNumber: Math.floor(100 + Math.random() * 500).toString(),
+            roomTypeName: pendingBooking.roomName,
+            checkIn: pendingBooking.checkInDate,
+            checkOut: pendingBooking.checkOutDate,
+            status: "Confirmed"
+          };
+          
+          // Add to bookings list
+          setBookings(prev => [newBooking, ...prev]);
+          
+          // Also create a payment record in localStorage
+          const paymentData = {
+            bookingId: newBooking.id,
+            bookingCode: newBooking.bookingCode,
+            roomName: pendingBooking.roomName,
+            checkInDate: pendingBooking.checkInDate,
+            checkOutDate: pendingBooking.checkOutDate,
+            nights: pendingBooking.nights,
+            pricePerNight: pendingBooking.pricePerNight,
+            totalPrice: pendingBooking.totalPrice,
+            services: [], // Will be populated if user adds services
+            created: new Date().toISOString()
+          };
+          
+          // Get any services the user might have added to their booking
+          const storageKey = `booking_services_${String(newBooking.id)}`;
+          const servicesJson = localStorage.getItem(storageKey);
+          if (servicesJson) {
+            try {
+              const services = JSON.parse(servicesJson);
+              paymentData.services = services;
+            } catch (error) {
+              console.error("Error parsing services:", error);
+            }
+          }
+          
+          // Store payment data for the payment page to use
+          localStorage.setItem('pendingPayment', JSON.stringify(paymentData));
+          
+          // Clear pending booking
+          localStorage.removeItem('pendingBooking');
+          setPendingBooking(null);
+          
+          // Show success message
+          toast.success("Đặt phòng thành công! Chuyển đến trang thanh toán...");
+          
+          // Redirect to payment page
+          router.push('/customer/payments?tab=pending');
+        }, 1500);
+      } else {
+        // Real API call would go here
+        const response = await post<{id: number, bookingCode: string}>('Bookings', {
+          roomId: typeof pendingBooking.roomId === 'string' ? parseInt(pendingBooking.roomId) : pendingBooking.roomId,
+          customerId: user?.id,
+          checkInDate: pendingBooking.checkInDate,
+          checkOutDate: pendingBooking.checkOutDate,
+          guests: pendingBooking.guests,
+          totalPrice: pendingBooking.totalPrice
+        });
+        
+        // Update booking list
+        const updatedBookings = await get<Booking[]>(`Bookings/customer/${user?.id}`);
+        setBookings(updatedBookings);
+        
+        // Create payment data
+        const paymentData = {
+          bookingId: response.id,
+          bookingCode: response.bookingCode,
+          roomName: pendingBooking.roomName,
+          checkInDate: pendingBooking.checkInDate,
+          checkOutDate: pendingBooking.checkOutDate,
+          nights: pendingBooking.nights,
+          pricePerNight: pendingBooking.pricePerNight,
+          totalPrice: pendingBooking.totalPrice,
+          services: [],
+          created: new Date().toISOString()
+        };
+        
+        // Get any services the user might have added
+        const storageKey = `booking_services_${String(response.id)}`;
+        const servicesJson = localStorage.getItem(storageKey);
+        if (servicesJson) {
+          try {
+            const services = JSON.parse(servicesJson);
+            paymentData.services = services;
+          } catch (error) {
+            console.error("Error parsing services:", error);
+          }
+        }
+        
+        // Store payment data
+        localStorage.setItem('pendingPayment', JSON.stringify(paymentData));
+        
+        // Clear pending booking
+        localStorage.removeItem('pendingBooking');
+        setPendingBooking(null);
+        
+        toast.success("Đặt phòng thành công! Chuyển đến trang thanh toán...");
+        
+        // Redirect to payment page
+        router.push('/customer/payments?tab=pending');
+      }
+    } catch (error) {
+      console.error("Error confirming booking:", error);
+      toast.error("Có lỗi xảy ra khi xác nhận đặt phòng. Vui lòng thử lại.");
+    }
   }
   
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'dd/MM/yyyy')
+  // Handle cancel pending booking
+  const handleCancelPendingBooking = () => {
+    localStorage.removeItem('pendingBooking');
+    setPendingBooking(null);
+    toast.info("Đã hủy đặt phòng");
   }
-  
+
+  // In the getBookingStatus function call, where bookingIdOrCode is used in url path
+  const getBookingStatus = async (bookingIdOrCode: string | number) => {
+    try {
+      // Use toString() to ensure the ID is converted to string for URL construction
+      const data = await get<any>(`Bookings/${bookingIdOrCode.toString()}/status`)
+      return data
+    } catch (err) {
+      console.error(`Error getting booking status for ${bookingIdOrCode}:`, err)
+      return null
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center gap-2 mb-2">
@@ -149,7 +377,145 @@ export default function MyBookingsPage() {
       
       <h1 className="text-2xl font-bold mb-6">Đặt phòng của tôi</h1>
       
-      {loading ? (
+      {/* Pending Booking Confirmation */}
+      {pendingBooking && (
+        <div className="mb-8">
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+            <div className="flex items-center text-blue-700 mb-2">
+              <Clock className="w-5 h-5 mr-2" />
+              <h2 className="text-lg font-medium">Xác nhận đặt phòng</h2>
+            </div>
+            <p className="text-sm text-blue-600">
+              Vui lòng xác nhận thông tin đặt phòng của bạn dưới đây trước khi hoàn tất.
+            </p>
+          </div>
+          
+          <Card className="p-5 border shadow-sm">
+            <div className="flex justify-between items-start mb-5">
+              <div>
+                <h3 className="text-xl font-semibold">{pendingBooking.roomName}</h3>
+                <p className="text-gray-600 text-sm">Loại phòng: {pendingBooking.roomName}</p>
+              </div>
+              <div className="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+                <Clock className="w-4 h-4 mr-1" />
+                <span>Chờ xác nhận</span>
+              </div>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-6 mb-5">
+              <div>
+                <div className="text-sm text-gray-500 mb-1">Thông tin đặt phòng</div>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <Calendar className="w-4 h-4 text-gray-500 mr-2" />
+                    <div>
+                      <span className="font-medium">Nhận phòng:</span> {formatDate(pendingBooking.checkInDate)}
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="w-4 h-4 text-gray-500 mr-2" />
+                    <div>
+                      <span className="font-medium">Trả phòng:</span> {formatDate(pendingBooking.checkOutDate)}
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <Users className="w-4 h-4 text-gray-500 mr-2" />
+                    <div>
+                      <span className="font-medium">Số khách:</span> {pendingBooking.guests} người
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <div className="text-sm text-gray-500 mb-1">Chi tiết thanh toán</div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Giá phòng ({pendingBooking.nights} đêm)</span>
+                    <span className="font-medium">{formatPrice(pendingBooking.pricePerNight)} × {pendingBooking.nights}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-semibold">
+                    <span>Tổng tiền</span>
+                    <span className="text-lg text-blue-700">{formatPrice(pendingBooking.totalPrice)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Pending booking details */}
+            <div className="pt-4">
+              <div className="text-gray-500 mb-2">Chi tiết đặt phòng:</div>
+              <div className="font-medium mb-1">{pendingBooking.roomName}</div>
+              <div className="text-gray-600 text-sm">
+                {pendingBooking.checkInDate ? formatDate(pendingBooking.checkInDate) : 'N/A'} - {pendingBooking.checkOutDate ? formatDate(pendingBooking.checkOutDate) : 'N/A'} ({pendingBooking.nights} đêm)
+              </div>
+              <div className="text-gray-600 text-sm">
+                {pendingBooking.guests} khách
+              </div>
+              
+              {/* Price section */}
+              <div className="mt-4">
+                <div className="flex justify-between">
+                  <div className="text-gray-600">Giá phòng ({pendingBooking.nights} đêm)</div>
+                  <div>{formatPrice(pendingBooking.pricePerNight * pendingBooking.nights)}</div>
+                </div>
+                
+                {/* Services section */}
+                <div className="mt-2">
+                  <div className="flex justify-between items-center">
+                    <div className="text-gray-600">Dịch vụ đi kèm</div>
+                    <Link href="/customer/services" className="text-blue-600 text-sm hover:underline">
+                      Thêm dịch vụ
+                    </Link>
+                  </div>
+                  
+                  {/* Display services if available */}
+                  {pendingServices && pendingServices.length > 0 ? (
+                    <div className="mt-2 border-t border-gray-100 pt-2">
+                      {pendingServices.map((service, index) => (
+                        <div key={index} className="flex justify-between py-1 text-sm">
+                          <div>{service.name} x{service.quantity}</div>
+                          <div>{formatPrice(service.totalPrice)}</div>
+                        </div>
+                      ))}
+                      <div className="flex justify-between mt-2 pt-2 border-t border-gray-100">
+                        <div className="text-gray-600">Tổng dịch vụ</div>
+                        <div>{formatPrice(pendingServices.reduce((sum, service) => sum + service.totalPrice, 0))}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500 italic">Chưa có dịch vụ đi kèm</div>
+                  )}
+                </div>
+                
+                {/* Total price */}
+                <div className="flex justify-between mt-4 pt-2 border-t border-gray-100">
+                  <div className="font-medium">Tổng tiền</div>
+                  <div className="font-bold text-lg">
+                    {formatPrice(
+                      pendingBooking.totalPrice + 
+                      (pendingServices ? pendingServices.reduce((sum, service) => sum + service.totalPrice, 0) : 0)
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-4 justify-end">
+              <Button variant="outline" onClick={handleCancelPendingBooking}>
+                Hủy
+              </Button>
+              <Button onClick={handleConfirmBooking}>
+                Xác nhận đặt phòng
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+      
+      {/* Existing bookings list */}
+      {loading && !pendingBooking ? (
         <div className="flex items-center justify-center p-12 bg-white rounded-lg shadow-sm border">
           <Loader2 className="animate-spin w-8 h-8 text-blue-600" />
           <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
@@ -158,7 +524,7 @@ export default function MyBookingsPage() {
         <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-lg text-center shadow-sm">
           {error}
         </div>
-      ) : !bookings.length ? (
+      ) : !bookings.length && !pendingBooking ? (
         <div className="bg-white p-8 rounded-lg text-center shadow-sm border">
           <CalendarClock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-xl font-medium text-gray-700 mb-2">Chưa có đặt phòng nào</h3>
@@ -168,63 +534,58 @@ export default function MyBookingsPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {bookings.map((booking) => (
-            <div key={booking.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition">
-              <div className="p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-800">{booking.roomTypeName}</h3>
-                    <p className="text-gray-600 mt-1 flex items-center">
-                      <Hotel className="w-4 h-4 mr-1" /> Phòng {booking.roomNumber}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${getStatusColor(booking.status)}`}>
-                      {getStatusIcon(booking.status)}
-                      <span className="ml-1">{booking.status}</span>
-                    </span>
-                    <span className="text-xs text-gray-500">#{booking.bookingCode}</span>
-                  </div>
-                </div>
-                
-                <div className="border-t border-gray-100 pt-4 pb-2">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm text-gray-500">Nhận phòng</div>
-                      <div className="font-medium text-gray-900">{formatDate(booking.checkIn)}</div>
+        <div className="mt-8">
+          {bookings.length > 0 && (
+            <>
+              <h2 className="text-lg font-semibold mb-4">Lịch sử đặt phòng</h2>
+              <div className="grid gap-4">
+                {bookings.map((booking) => (
+                  <div key={booking.id} className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 hover:shadow-md transition">
+                    <div className="p-5">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-800">{booking.roomTypeName}</h3>
+                          <p className="text-gray-600 mt-1 flex items-center">
+                            <Hotel className="w-4 h-4 mr-1" /> Phòng {booking.roomNumber}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${getStatusColor(booking.status)}`}>
+                            {getStatusIcon(booking.status)}
+                            <span className="ml-1">{booking.status}</span>
+                          </span>
+                          <span className="text-xs text-gray-500">#{booking.bookingCode}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t border-gray-100 pt-4 pb-2">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <div className="text-sm text-gray-500">Nhận phòng</div>
+                            <div className="font-medium text-gray-900">{formatDate(booking.checkIn)}</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-gray-500">Trả phòng</div>
+                            <div className="font-medium text-gray-900">{formatDate(booking.checkOut)}</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Action buttons */}
+                      <div className="mt-4 flex justify-end">
+                        <Link 
+                          href={`/customer/booking/${booking.id}`} 
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          Xem chi tiết
+                        </Link>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Trả phòng</div>
-                      <div className="font-medium text-gray-900">{formatDate(booking.checkOut)}</div>
-                    </div>
                   </div>
-                  <div className="mt-3 text-sm text-gray-600">
-                    <span className="font-medium text-gray-700">{calculateDuration(booking.checkIn, booking.checkOut)} đêm</span>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center mt-4">
-                  <Link 
-                    href={`/customer/booking/${booking.id}`} 
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    Xem chi tiết
-                  </Link>
-                  
-                  {booking.status.toLowerCase() === 'confirmed' && (
-                    <Link 
-                      href={`/customer/payments/booking/${booking.id}`} 
-                      className="inline-flex items-center text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100"
-                    >
-                      <CreditCard className="w-4 h-4 mr-1" />
-                      Thanh toán
-                    </Link>
-                  )}
-                </div>
+                ))}
               </div>
-            </div>
-          ))}
+            </>
+          )}
         </div>
       )}
     </div>
