@@ -1,6 +1,7 @@
 using HotelManagementAPI.Data;
 using HotelManagementAPI.DTOs;
 using HotelManagementAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "admin,staff,janitor")]
     public class ServicesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -28,9 +30,7 @@ namespace HotelManagementAPI.Controllers
                 Id = s.Id,
                 Name = s.Name,
                 Price = s.Price,
-                ChildPrice = s.ChildPrice,
-                Description = s.Description,
-                UnitType = s.UnitType
+                Description = s.Description
             }).ToList();
         }
 
@@ -50,9 +50,7 @@ namespace HotelManagementAPI.Controllers
                 Id = service.Id,
                 Name = service.Name,
                 Price = service.Price,
-                ChildPrice = service.ChildPrice,
-                Description = service.Description,
-                UnitType = service.UnitType
+                Description = service.Description
             };
         }
 
@@ -64,9 +62,7 @@ namespace HotelManagementAPI.Controllers
             {
                 Name = createServiceDTO.Name,
                 Price = createServiceDTO.Price,
-                ChildPrice = createServiceDTO.ChildPrice,
-                Description = createServiceDTO.Description,
-                UnitType = createServiceDTO.UnitType
+                Description = createServiceDTO.Description
             };
 
             _context.Services.Add(service);
@@ -77,9 +73,7 @@ namespace HotelManagementAPI.Controllers
                 Id = service.Id,
                 Name = service.Name,
                 Price = service.Price,
-                ChildPrice = service.ChildPrice,
-                Description = service.Description,
-                UnitType = service.UnitType
+                Description = service.Description
             });
         }
 
@@ -95,9 +89,7 @@ namespace HotelManagementAPI.Controllers
 
             service.Name = updateServiceDTO.Name;
             service.Price = updateServiceDTO.Price;
-            service.ChildPrice = updateServiceDTO.ChildPrice;
             service.Description = updateServiceDTO.Description;
-            service.UnitType = updateServiceDTO.UnitType;
 
             try
             {
@@ -139,4 +131,4 @@ namespace HotelManagementAPI.Controllers
             return _context.Services.Any(e => e.Id == id);
         }
     }
-} 
+}

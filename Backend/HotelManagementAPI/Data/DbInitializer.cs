@@ -183,33 +183,21 @@ namespace HotelManagementAPI.Data
             {
                 new Service
                 {
-                    Name = "Buffet sáng",
-                    Price = 250000,
-                    ChildPrice = 200000,
-                    Description = "Buffet sáng với đa dạng món ăn Á - Âu, phù hợp cho cả gia đình",
-                    UnitType = "người"
+                    Name = "Dịch vụ giặt ủi",
+                    Price = 150000,
+                    Description = "Giặt và ủi quần áo trong ngày"
+                },
+                new Service
+                {
+                    Name = "Xe đưa đón sân bay",
+                    Price = 300000,
+                    Description = "Dịch vụ đưa đón khách từ sân bay về khách sạn và ngược lại"
                 },
                 new Service
                 {
                     Name = "Spa & Massage",
-                    Price = 850000,
-                    Description = "Dịch vụ spa và massage cao cấp, giúp thư giãn và làm đẹp",
-                    UnitType = "người"
-                },
-                new Service
-                {
-                    Name = "Dịch vụ giặt ủi",
-                    Price = 150000,
-                    Description = "Dịch vụ giặt và ủi quần áo chuyên nghiệp, đảm bảo sạch sẽ và phẳng phiu",
-                    UnitType = "kg"
-                },
-                new Service
-                {
-                    Name = "Đưa đón sân bay",
-                    Price = 400000,
-                    ChildPrice = 200000,
-                    Description = "Dịch vụ đưa đón sân bay sang trọng, thoải mái với xe riêng",
-                    UnitType = "người"
+                    Price = 500000,
+                    Description = "Dịch vụ massage và chăm sóc sức khỏe"
                 }
             };
 

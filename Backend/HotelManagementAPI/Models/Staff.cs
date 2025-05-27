@@ -38,5 +38,9 @@ namespace HotelManagementAPI.Models
         [StringLength(255)]
         [Column("avatar_url")]
         public string? AvatarUrl { get; set; }
+
+        [StringLength(255)]
+        [Column("password")]
+        public string Password { get; set; } = string.Empty;
     }
-} 
+}

@@ -1,6 +1,7 @@
 using HotelManagementAPI.Data;
 using HotelManagementAPI.DTOs;
 using HotelManagementAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "admin,staff,janitor")]
     public class RoomTypesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -156,4 +158,4 @@ namespace HotelManagementAPI.Controllers
             return _context.RoomTypes.Any(e => e.Id == id);
         }
     }
-} 
+}

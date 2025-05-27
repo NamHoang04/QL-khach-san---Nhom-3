@@ -1,6 +1,7 @@
 using HotelManagementAPI.Data;
 using HotelManagementAPI.DTOs;
 using HotelManagementAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -12,6 +13,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "admin,staff,customer")]
     public class InvoicesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -194,9 +196,7 @@ namespace HotelManagementAPI.Controllers
             invoice.Status = updateInvoiceDTO.Status;
             invoice.PaymentMethod = updateInvoiceDTO.PaymentMethod;
             invoice.Notes = updateInvoiceDTO.Notes;
-
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
@@ -228,7 +228,6 @@ namespace HotelManagementAPI.Controllers
 
             _context.Invoices.Remove(invoice);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
@@ -237,4 +236,4 @@ namespace HotelManagementAPI.Controllers
             return _context.Invoices.Any(e => e.Id == id);
         }
     }
-} 
+}
