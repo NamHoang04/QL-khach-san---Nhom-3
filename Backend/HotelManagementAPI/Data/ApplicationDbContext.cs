@@ -23,6 +23,9 @@ namespace HotelManagementAPI.Data
         public DbSet<Service> Services { get; set; }
         public DbSet<Event> Events { get; set; }
         public DbSet<Staff> Staffs { get; set; }
+        public DbSet<BookingService> BookingServices { get; set; }
+        public DbSet<FavoriteRoom> FavoriteRooms { get; set; }
+        public DbSet<FavoriteService> FavoriteServices { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,6 +43,9 @@ namespace HotelManagementAPI.Data
             modelBuilder.Entity<Service>().ToTable("services");
             modelBuilder.Entity<Event>().ToTable("events");
             modelBuilder.Entity<Staff>().ToTable("staff");
+            modelBuilder.Entity<BookingService>().ToTable("booking_services");
+            modelBuilder.Entity<FavoriteRoom>().ToTable("favorite_rooms");
+            modelBuilder.Entity<FavoriteService>().ToTable("favorite_services");
 
             // Configure composite keys
             modelBuilder.Entity<AdminRole>()
@@ -47,6 +53,11 @@ namespace HotelManagementAPI.Data
 
             modelBuilder.Entity<RolePermission>()
                 .HasKey(rp => new { rp.RoleId, rp.PermissionId });
+
+            modelBuilder.Entity<FavoriteRoom>()
+                .HasKey(fr => new { fr.CustomerId, fr.RoomId });
+            modelBuilder.Entity<FavoriteService>()
+                .HasKey(fs => new { fs.CustomerId, fs.ServiceId });
 
             // Configure relationships
             modelBuilder.Entity<AdminRole>()
@@ -72,4 +83,4 @@ namespace HotelManagementAPI.Data
             base.OnModelCreating(modelBuilder);
         }
     }
-} 
+}

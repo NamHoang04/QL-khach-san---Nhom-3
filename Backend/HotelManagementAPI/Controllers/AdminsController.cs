@@ -1,10 +1,14 @@
 using HotelManagementAPI.Data;
 using HotelManagementAPI.DTOs;
 using HotelManagementAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,13 +20,16 @@ namespace HotelManagementAPI.Controllers
     public class AdminsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public AdminsController(ApplicationDbContext context)
+        public AdminsController(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         // GET: api/Admins
+        [Authorize(Roles = "admin")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AdminDTO>>> GetAdmins()
         {
@@ -37,11 +44,12 @@ namespace HotelManagementAPI.Controllers
                 Username = a.Username,
                 Email = a.Email,
                 Role = a.Role,
-                Roles = a.AdminRoles?.Select(ar => ar.Role?.Name).Where(n => n != null).ToList()
+                Roles = a.AdminRoles == null ? new List<string>() : a.AdminRoles.Where(ar => ar?.Role?.Name != null).Select(ar => ar!.Role!.Name!).ToList()
             }).ToList();
         }
 
         // GET: api/Admins/5
+        [Authorize(Roles = "admin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<AdminDTO>> GetAdmin(int id)
         {
@@ -61,11 +69,12 @@ namespace HotelManagementAPI.Controllers
                 Username = admin.Username,
                 Email = admin.Email,
                 Role = admin.Role,
-                Roles = admin.AdminRoles?.Select(ar => ar.Role?.Name).Where(n => n != null).ToList()
+                Roles = admin.AdminRoles == null ? new List<string>() : admin.AdminRoles.Where(ar => ar?.Role?.Name != null).Select(ar => ar!.Role!.Name!).ToList()
             };
         }
 
         // POST: api/Admins
+        [Authorize(Roles = "admin")]
         [HttpPost]
         public async Task<ActionResult<AdminDTO>> CreateAdmin(CreateAdminDTO createAdminDTO)
         {
@@ -102,6 +111,7 @@ namespace HotelManagementAPI.Controllers
         }
 
         // PUT: api/Admins/5
+        [Authorize(Roles = "admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAdmin(int id, UpdateAdminDTO updateAdminDTO)
         {
@@ -134,6 +144,7 @@ namespace HotelManagementAPI.Controllers
         }
 
         // POST: api/Admins/5/change-password
+        [Authorize(Roles = "admin")]
         [HttpPost("{id}/change-password")]
         public async Task<IActionResult> ChangePassword(int id, ChangePasswordDTO changePasswordDTO)
         {
@@ -159,6 +170,7 @@ namespace HotelManagementAPI.Controllers
         }
 
         // POST: api/Admins/5/assign-roles
+        [Authorize(Roles = "admin")]
         [HttpPost("{id}/assign-roles")]
         public async Task<IActionResult> AssignRoles(int id, AssignRoleDTO assignRoleDTO)
         {
@@ -201,6 +213,7 @@ namespace HotelManagementAPI.Controllers
         }
 
         // DELETE: api/Admins/5
+        [Authorize(Roles = "admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAdmin(int id)
         {
@@ -214,6 +227,40 @@ namespace HotelManagementAPI.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // POST: api/Admins/login
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDTO loginDto)
+        {
+            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Username == loginDto.Username);
+            if (admin == null || admin.Password != loginDto.Password) // Nên hash và so sánh hash thực tế
+            {
+                return Unauthorized("Sai tài khoản hoặc mật khẩu");
+            }
+
+            var token = GenerateJwtToken(admin.Id, admin.Username, "admin");
+            return Ok(new { token });
+        }
+
+        private string GenerateJwtToken(int id, string username, string role)
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, id.ToString()),
+                new Claim(ClaimTypes.Name, username),
+                new Claim(ClaimTypes.Role, role)
+            };
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"] ?? "DefaultSecretKeyForDevelopment12345678901234"));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken(
+                issuer: _configuration["JwtSettings:Issuer"],
+                audience: _configuration["JwtSettings:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddHours(2),
+                signingCredentials: creds
+            );
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         private bool AdminExists(int id)
@@ -241,4 +288,4 @@ namespace HotelManagementAPI.Controllers
             return string.Equals(hashedEnteredPassword, storedHash);
         }
     }
-} 
+}

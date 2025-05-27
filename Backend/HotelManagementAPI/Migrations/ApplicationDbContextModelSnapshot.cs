@@ -36,6 +36,11 @@ namespace HotelManagementAPI.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("email");
 
+                    b.Property<string>("FullName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("full_name");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -89,16 +94,16 @@ namespace HotelManagementAPI.Migrations
 
                     b.Property<string>("BookingCode")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnName("booking_code");
 
                     b.Property<DateTime>("CheckIn")
-                        .HasColumnType("date")
+                        .HasColumnType("datetime2")
                         .HasColumnName("check_in");
 
                     b.Property<DateTime>("CheckOut")
-                        .HasColumnType("date")
+                        .HasColumnType("datetime2")
                         .HasColumnName("check_out");
 
                     b.Property<int>("CustomerId")
@@ -121,6 +126,44 @@ namespace HotelManagementAPI.Migrations
                     b.HasIndex("RoomId");
 
                     b.ToTable("bookings", (string)null);
+                });
+
+            modelBuilder.Entity("HotelManagementAPI.Models.BookingService", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("int")
+                        .HasColumnName("booking_id");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("note");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(15,2)")
+                        .HasColumnName("price");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int")
+                        .HasColumnName("quantity");
+
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("int")
+                        .HasColumnName("service_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.ToTable("booking_services", (string)null);
                 });
 
             modelBuilder.Entity("HotelManagementAPI.Models.Customer", b =>
@@ -219,6 +262,44 @@ namespace HotelManagementAPI.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("events", (string)null);
+                });
+
+            modelBuilder.Entity("HotelManagementAPI.Models.FavoriteRoom", b =>
+                {
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int")
+                        .HasColumnName("customer_id")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("RoomId")
+                        .HasColumnType("int")
+                        .HasColumnName("room_id")
+                        .HasColumnOrder(1);
+
+                    b.HasKey("CustomerId", "RoomId");
+
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("favorite_rooms", (string)null);
+                });
+
+            modelBuilder.Entity("HotelManagementAPI.Models.FavoriteService", b =>
+                {
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int")
+                        .HasColumnName("customer_id")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("int")
+                        .HasColumnName("service_id")
+                        .HasColumnOrder(1);
+
+                    b.HasKey("CustomerId", "ServiceId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.ToTable("favorite_services", (string)null);
                 });
 
             modelBuilder.Entity("HotelManagementAPI.Models.Invoice", b =>
@@ -354,13 +435,29 @@ namespace HotelManagementAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("DiscountPercent")
+                        .HasColumnType("int")
+                        .HasColumnName("discount_percent");
+
                     b.Property<int?>("Floor")
                         .HasColumnType("int")
                         .HasColumnName("floor");
 
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("bit")
+                        .HasColumnName("is_featured");
+
+                    b.Property<decimal?>("OriginalPrice")
+                        .HasColumnType("decimal(15,2)")
+                        .HasColumnName("original_price");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(15,2)")
                         .HasColumnName("price");
+
+                    b.Property<double?>("Rating")
+                        .HasColumnType("float")
+                        .HasColumnName("rating");
 
                     b.Property<string>("RoomNumber")
                         .IsRequired()
@@ -438,9 +535,17 @@ namespace HotelManagementAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Category")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("category");
+
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("description");
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("icon");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -481,6 +586,12 @@ namespace HotelManagementAPI.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("full_name");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("password");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
@@ -546,6 +657,63 @@ namespace HotelManagementAPI.Migrations
                     b.Navigation("Room");
                 });
 
+            modelBuilder.Entity("HotelManagementAPI.Models.BookingService", b =>
+                {
+                    b.HasOne("HotelManagementAPI.Models.Booking", "Booking")
+                        .WithMany("BookingServices")
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HotelManagementAPI.Models.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Service");
+                });
+
+            modelBuilder.Entity("HotelManagementAPI.Models.FavoriteRoom", b =>
+                {
+                    b.HasOne("HotelManagementAPI.Models.Customer", "Customer")
+                        .WithMany("FavoriteRooms")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HotelManagementAPI.Models.Room", "Room")
+                        .WithMany("FavoriteRooms")
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("HotelManagementAPI.Models.FavoriteService", b =>
+                {
+                    b.HasOne("HotelManagementAPI.Models.Customer", "Customer")
+                        .WithMany("FavoriteServices")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HotelManagementAPI.Models.Service", "Service")
+                        .WithMany("FavoriteServices")
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Service");
+                });
+
             modelBuilder.Entity("HotelManagementAPI.Models.Invoice", b =>
                 {
                     b.HasOne("HotelManagementAPI.Models.Booking", "Booking")
@@ -600,12 +768,18 @@ namespace HotelManagementAPI.Migrations
 
             modelBuilder.Entity("HotelManagementAPI.Models.Booking", b =>
                 {
+                    b.Navigation("BookingServices");
+
                     b.Navigation("Invoices");
                 });
 
             modelBuilder.Entity("HotelManagementAPI.Models.Customer", b =>
                 {
                     b.Navigation("Bookings");
+
+                    b.Navigation("FavoriteRooms");
+
+                    b.Navigation("FavoriteServices");
 
                     b.Navigation("Invoices");
                 });
@@ -625,11 +799,18 @@ namespace HotelManagementAPI.Migrations
             modelBuilder.Entity("HotelManagementAPI.Models.Room", b =>
                 {
                     b.Navigation("Bookings");
+
+                    b.Navigation("FavoriteRooms");
                 });
 
             modelBuilder.Entity("HotelManagementAPI.Models.RoomType", b =>
                 {
                     b.Navigation("Rooms");
+                });
+
+            modelBuilder.Entity("HotelManagementAPI.Models.Service", b =>
+                {
+                    b.Navigation("FavoriteServices");
                 });
 #pragma warning restore 612, 618
         }

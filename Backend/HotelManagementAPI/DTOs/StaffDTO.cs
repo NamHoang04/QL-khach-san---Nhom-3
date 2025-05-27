@@ -10,6 +10,7 @@ namespace HotelManagementAPI.DTOs
         public string? Position { get; set; }
         public string? Status { get; set; }
         public string? AvatarUrl { get; set; }
+        public string Password { get; set; } = string.Empty;
     }
 
     public class CreateStaffDTO
@@ -21,6 +22,7 @@ namespace HotelManagementAPI.DTOs
         public string? Position { get; set; }
         public string? Status { get; set; }
         public string? AvatarUrl { get; set; }
+        public string Password { get; set; } = string.Empty;
     }
 
     public class UpdateStaffDTO
@@ -37,4 +39,4 @@ namespace HotelManagementAPI.DTOs
     {
         public string Status { get; set; } = string.Empty;
     }
-} 
+}

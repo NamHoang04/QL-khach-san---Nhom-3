@@ -20,7 +20,7 @@ namespace HotelManagementAPI.Models
         public string? Description { get; set; }
         
         // Navigation properties
-        public virtual ICollection<AdminRole>? AdminRoles { get; set; }
+        public virtual ICollection<AdminRole> AdminRoles { get; set; } = new List<AdminRole>();
         public virtual ICollection<RolePermission>? RolePermissions { get; set; }
     }
-} 
+}
