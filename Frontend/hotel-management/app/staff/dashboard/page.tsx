@@ -19,7 +19,7 @@ export default function StaffDashboardPage() {
     <AuthGuard requiredRole="staff">
       <div>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold">Bảng điều khiển</h1>
           <p className="text-gray-600">
             {greeting}, {user?.fullName || user?.username || "Nhân viên"}!
           </p>
@@ -68,4 +68,4 @@ export default function StaffDashboardPage() {
       </div>
     </AuthGuard>
   )
-} 
+}
