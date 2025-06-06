@@ -29,16 +29,16 @@ namespace HotelManagementAPI.Controllers
         }
 
         // GET: api/Admins
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<AdminDTO>>> GetAdmins()
         {
-            var admins = await _context.Admins
+            var Admins = await _context.Admins
                 .Include(a => a.AdminRoles)
                 .ThenInclude(ar => ar.Role)
                 .ToListAsync();
 
-            return admins.Select(a => new AdminDTO
+            return Admins.Select(a => new AdminDTO
             {
                 Id = a.Id,
                 Username = a.Username,
@@ -49,32 +49,32 @@ namespace HotelManagementAPI.Controllers
         }
 
         // GET: api/Admins/5
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id}")]
         public async Task<ActionResult<AdminDTO>> GetAdmin(int id)
         {
-            var admin = await _context.Admins
+            var Admin = await _context.Admins
                 .Include(a => a.AdminRoles)
                 .ThenInclude(ar => ar.Role)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
-            if (admin == null)
+            if (Admin == null)
             {
                 return NotFound();
             }
 
             return new AdminDTO
             {
-                Id = admin.Id,
-                Username = admin.Username,
-                Email = admin.Email,
-                Role = admin.Role,
-                Roles = admin.AdminRoles == null ? new List<string>() : admin.AdminRoles.Where(ar => ar?.Role?.Name != null).Select(ar => ar!.Role!.Name!).ToList()
+                Id = Admin.Id,
+                Username = Admin.Username,
+                Email = Admin.Email,
+                Role = Admin.Role,
+                Roles = Admin.AdminRoles == null ? new List<string>() : Admin.AdminRoles.Where(ar => ar?.Role?.Name != null).Select(ar => ar!.Role!.Name!).ToList()
             };
         }
 
         // POST: api/Admins
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<AdminDTO>> CreateAdmin(CreateAdminDTO createAdminDTO)
         {
@@ -90,39 +90,39 @@ namespace HotelManagementAPI.Controllers
             // Mã hóa mật khẩu
             string hashedPassword = HashPassword(createAdminDTO.Password);
 
-            var admin = new Admin
+            var Admin = new Admin
             {
                 Username = createAdminDTO.Username,
                 Password = hashedPassword,
                 Email = createAdminDTO.Email,
-                Role = createAdminDTO.Role ?? "admin"
+                Role = createAdminDTO.Role ?? "Admin"
             };
 
-            _context.Admins.Add(admin);
+            _context.Admins.Add(Admin);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetAdmin), new { id = admin.Id }, new AdminDTO
+            return CreatedAtAction(nameof(GetAdmin), new { id = Admin.Id }, new AdminDTO
             {
-                Id = admin.Id,
-                Username = admin.Username,
-                Email = admin.Email,
-                Role = admin.Role
+                Id = Admin.Id,
+                Username = Admin.Username,
+                Email = Admin.Email,
+                Role = Admin.Role
             });
         }
 
         // PUT: api/Admins/5
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAdmin(int id, UpdateAdminDTO updateAdminDTO)
         {
-            var admin = await _context.Admins.FindAsync(id);
-            if (admin == null)
+            var Admin = await _context.Admins.FindAsync(id);
+            if (Admin == null)
             {
                 return NotFound();
             }
 
-            admin.Email = updateAdminDTO.Email ?? admin.Email;
-            admin.Role = updateAdminDTO.Role ?? admin.Role;
+            Admin.Email = updateAdminDTO.Email ?? Admin.Email;
+            Admin.Role = updateAdminDTO.Role ?? Admin.Role;
 
             try
             {
@@ -144,25 +144,25 @@ namespace HotelManagementAPI.Controllers
         }
 
         // POST: api/Admins/5/change-password
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         [HttpPost("{id}/change-password")]
         public async Task<IActionResult> ChangePassword(int id, ChangePasswordDTO changePasswordDTO)
         {
-            var admin = await _context.Admins.FindAsync(id);
-            if (admin == null)
+            var Admin = await _context.Admins.FindAsync(id);
+            if (Admin == null)
             {
                 return NotFound();
             }
 
             // Kiểm tra mật khẩu cũ
-            if (!VerifyPassword(changePasswordDTO.OldPassword, admin.Password))
+            if (!VerifyPassword(changePasswordDTO.OldPassword, Admin.Password))
             {
                 return BadRequest("Invalid old password");
             }
 
             // Mã hóa mật khẩu mới
             string hashedPassword = HashPassword(changePasswordDTO.NewPassword);
-            admin.Password = hashedPassword;
+            Admin.Password = hashedPassword;
 
             await _context.SaveChangesAsync();
 
@@ -170,12 +170,12 @@ namespace HotelManagementAPI.Controllers
         }
 
         // POST: api/Admins/5/assign-roles
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         [HttpPost("{id}/assign-roles")]
         public async Task<IActionResult> AssignRoles(int id, AssignRoleDTO assignRoleDTO)
         {
-            var admin = await _context.Admins.FindAsync(id);
-            if (admin == null)
+            var Admin = await _context.Admins.FindAsync(id);
+            if (Admin == null)
             {
                 return NotFound("Admin not found");
             }
@@ -213,17 +213,17 @@ namespace HotelManagementAPI.Controllers
         }
 
         // DELETE: api/Admins/5
-        [Authorize(Roles = "admin")]
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAdmin(int id)
         {
-            var admin = await _context.Admins.FindAsync(id);
-            if (admin == null)
+            var Admin = await _context.Admins.FindAsync(id);
+            if (Admin == null)
             {
                 return NotFound();
             }
 
-            _context.Admins.Remove(admin);
+            _context.Admins.Remove(Admin);
             await _context.SaveChangesAsync();
 
             return NoContent();
@@ -233,13 +233,13 @@ namespace HotelManagementAPI.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDTO loginDto)
         {
-            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Username == loginDto.Username);
-            if (admin == null || admin.Password != loginDto.Password) // Nên hash và so sánh hash thực tế
+            var Admin = await _context.Admins.FirstOrDefaultAsync(a => a.Username == loginDto.UserName);
+            if (Admin == null || Admin.Password != loginDto.Password) // Nên hash và so sánh hash thực tế
             {
                 return Unauthorized("Sai tài khoản hoặc mật khẩu");
             }
 
-            var token = GenerateJwtToken(admin.Id, admin.Username, "admin");
+            var token = GenerateJwtToken(Admin.Id, Admin.Username, "Admin");
             return Ok(new { token });
         }
 

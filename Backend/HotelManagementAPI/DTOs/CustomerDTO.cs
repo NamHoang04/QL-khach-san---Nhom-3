@@ -4,7 +4,7 @@ namespace HotelManagementAPI.DTOs
     {
         public int Id { get; set; }
         public string CustomerCode { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string? Phone { get; set; }
         public string? IdentityNumber { get; set; }
@@ -14,7 +14,7 @@ namespace HotelManagementAPI.DTOs
     public class CreateCustomerDTO
     {
         public string CustomerCode { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string? Phone { get; set; }
         public string? IdentityNumber { get; set; }
@@ -24,7 +24,7 @@ namespace HotelManagementAPI.DTOs
     public class UpdateCustomerDTO
     {
         public string CustomerCode { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string? Phone { get; set; }
         public string? IdentityNumber { get; set; }

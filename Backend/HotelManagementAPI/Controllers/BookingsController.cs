@@ -9,7 +9,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "admin,staff,customer")]
+    [Authorize(Roles = "Admin,Staff,Customer")]
     public class BookingsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -38,7 +38,7 @@ namespace HotelManagementAPI.Controllers
                 CheckIn = b.CheckIn,
                 CheckOut = b.CheckOut,
                 Status = b.Status,
-                CustomerName = b.Customer?.FullName,
+                CustomerName = b.Customer?.UserName,
                 CustomerEmail = b.Customer?.Email,
                 RoomNumber = b.Room?.RoomNumber,
                 RoomTypeName = b.Room?.RoomType?.Name
@@ -69,7 +69,7 @@ namespace HotelManagementAPI.Controllers
                 CheckIn = booking.CheckIn,
                 CheckOut = booking.CheckOut,
                 Status = booking.Status,
-                CustomerName = booking.Customer?.FullName,
+                CustomerName = booking.Customer?.UserName,
                 CustomerEmail = booking.Customer?.Email,
                 RoomNumber = booking.Room?.RoomNumber,
                 RoomTypeName = booking.Room?.RoomType?.Name
@@ -80,10 +80,10 @@ namespace HotelManagementAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<BookingDTO>> CreateBooking(CreateBookingDTO createBookingDTO)
         {
-            var customer = await _context.Customers.FindAsync(createBookingDTO.CustomerId);
-            if (customer == null)
+            var Customer = await _context.Customers.FindAsync(createBookingDTO.CustomerId);
+            if (Customer == null)
             {
-                return BadRequest("Invalid customer ID");
+                return BadRequest("Invalid Customer ID");
             }
 
             var room = await _context.Rooms
@@ -129,8 +129,8 @@ namespace HotelManagementAPI.Controllers
                 CheckIn = booking.CheckIn,
                 CheckOut = booking.CheckOut,
                 Status = booking.Status,
-                CustomerName = customer.FullName,
-                CustomerEmail = customer.Email,
+                CustomerName = Customer.UserName,
+                CustomerEmail = Customer.Email,
                 RoomNumber = room.RoomNumber,
                 RoomTypeName = room.RoomType?.Name
             });
@@ -146,10 +146,10 @@ namespace HotelManagementAPI.Controllers
                 return NotFound();
             }
 
-            var customer = await _context.Customers.FindAsync(updateBookingDTO.CustomerId);
-            if (customer == null)
+            var Customer = await _context.Customers.FindAsync(updateBookingDTO.CustomerId);
+            if (Customer == null)
             {
-                return BadRequest("Invalid customer ID");
+                return BadRequest("Invalid Customer ID");
             }
 
             var room = await _context.Rooms.FindAsync(updateBookingDTO.RoomId);

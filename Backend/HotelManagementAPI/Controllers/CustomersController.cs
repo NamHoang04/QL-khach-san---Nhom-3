@@ -12,7 +12,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "admin,staff,customer")]
+    [Authorize(Roles = "Admin,Staff,Customer")]
     public class CustomersController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -31,7 +31,7 @@ namespace HotelManagementAPI.Controllers
                 {
                     Id = c.Id,
                     CustomerCode = c.CustomerCode,
-                    FullName = c.FullName,
+                    UserName = c.UserName,
                     Email = c.Email,
                     Phone = c.Phone,
                     IdentityNumber = c.IdentityNumber,
@@ -44,22 +44,22 @@ namespace HotelManagementAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<CustomerDTO>> GetCustomer(int id)
         {
-            var customer = await _context.Customers.FindAsync(id);
+            var Customer = await _context.Customers.FindAsync(id);
 
-            if (customer == null)
+            if (Customer == null)
             {
                 return NotFound();
             }
 
             return new CustomerDTO
             {
-                Id = customer.Id,
-                CustomerCode = customer.CustomerCode,
-                FullName = customer.FullName,
-                Email = customer.Email,
-                Phone = customer.Phone,
-                IdentityNumber = customer.IdentityNumber,
-                Address = customer.Address
+                Id = Customer.Id,
+                CustomerCode = Customer.CustomerCode,
+                UserName = Customer.UserName,
+                Email = Customer.Email,
+                Phone = Customer.Phone,
+                IdentityNumber = Customer.IdentityNumber,
+                Address = Customer.Address
             };
         }
 
@@ -73,7 +73,7 @@ namespace HotelManagementAPI.Controllers
             }
 
             return await _context.Customers
-                .Where(c => c.FullName.Contains(query) || 
+                .Where(c => c.UserName.Contains(query) || 
                             c.CustomerCode.Contains(query) || 
                             c.Phone.Contains(query) || 
                             c.Email.Contains(query))
@@ -81,7 +81,7 @@ namespace HotelManagementAPI.Controllers
                 {
                     Id = c.Id,
                     CustomerCode = c.CustomerCode,
-                    FullName = c.FullName,
+                    UserName = c.UserName,
                     Email = c.Email,
                     Phone = c.Phone,
                     IdentityNumber = c.IdentityNumber,
@@ -100,28 +100,28 @@ namespace HotelManagementAPI.Controllers
                 return BadRequest("Mã khách hàng đã tồn tại");
             }
 
-            var customer = new Customer
+            var Customer = new Customer
             {
                 CustomerCode = createCustomerDTO.CustomerCode,
-                FullName = createCustomerDTO.FullName,
+                UserName = createCustomerDTO.UserName,
                 Email = createCustomerDTO.Email,
                 Phone = createCustomerDTO.Phone,
                 IdentityNumber = createCustomerDTO.IdentityNumber,
                 Address = createCustomerDTO.Address
             };
 
-            _context.Customers.Add(customer);
+            _context.Customers.Add(Customer);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetCustomer), new { id = customer.Id }, new CustomerDTO
+            return CreatedAtAction(nameof(GetCustomer), new { id = Customer.Id }, new CustomerDTO
             {
-                Id = customer.Id,
-                CustomerCode = customer.CustomerCode,
-                FullName = customer.FullName,
-                Email = customer.Email,
-                Phone = customer.Phone,
-                IdentityNumber = customer.IdentityNumber,
-                Address = customer.Address
+                Id = Customer.Id,
+                CustomerCode = Customer.CustomerCode,
+                UserName = Customer.UserName,
+                Email = Customer.Email,
+                Phone = Customer.Phone,
+                IdentityNumber = Customer.IdentityNumber,
+                Address = Customer.Address
             });
         }
 
@@ -129,25 +129,25 @@ namespace HotelManagementAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCustomer(int id, UpdateCustomerDTO updateCustomerDTO)
         {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
+            var Customer = await _context.Customers.FindAsync(id);
+            if (Customer == null)
             {
                 return NotFound();
             }
 
             // Nếu mã khách hàng thay đổi, kiểm tra xem mã mới đã tồn tại chưa
-            if (updateCustomerDTO.CustomerCode != customer.CustomerCode &&
+            if (updateCustomerDTO.CustomerCode != Customer.CustomerCode &&
                 await _context.Customers.AnyAsync(c => c.CustomerCode == updateCustomerDTO.CustomerCode))
             {
                 return BadRequest("Mã khách hàng đã tồn tại");
             }
 
-            customer.CustomerCode = updateCustomerDTO.CustomerCode;
-            customer.FullName = updateCustomerDTO.FullName;
-            customer.Email = updateCustomerDTO.Email;
-            customer.Phone = updateCustomerDTO.Phone;
-            customer.IdentityNumber = updateCustomerDTO.IdentityNumber;
-            customer.Address = updateCustomerDTO.Address;
+            Customer.CustomerCode = updateCustomerDTO.CustomerCode;
+            Customer.UserName = updateCustomerDTO.UserName;
+            Customer.Email = updateCustomerDTO.Email;
+            Customer.Phone = updateCustomerDTO.Phone;
+            Customer.IdentityNumber = updateCustomerDTO.IdentityNumber;
+            Customer.Address = updateCustomerDTO.Address;
 
             await _context.SaveChangesAsync();
 
@@ -158,8 +158,8 @@ namespace HotelManagementAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCustomer(int id)
         {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
+            var Customer = await _context.Customers.FindAsync(id);
+            if (Customer == null)
             {
                 return NotFound();
             }
@@ -171,7 +171,7 @@ namespace HotelManagementAPI.Controllers
                 return BadRequest("Không thể xóa khách hàng vì đã có đặt phòng liên quan");
             }
 
-            _context.Customers.Remove(customer);
+            _context.Customers.Remove(Customer);
             await _context.SaveChangesAsync();
 
             return NoContent();

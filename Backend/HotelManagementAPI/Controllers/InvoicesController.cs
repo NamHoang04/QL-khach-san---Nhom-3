@@ -13,7 +13,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "admin,staff,customer")]
+    [Authorize(Roles = "Admin,Staff,Customer")]
     public class InvoicesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -35,7 +35,7 @@ namespace HotelManagementAPI.Controllers
                     Id = i.Id,
                     InvoiceCode = i.InvoiceCode,
                     CustomerId = i.CustomerId,
-                    CustomerName = i.Customer.FullName,
+                    CustomerName = i.Customer.UserName,
                     BookingId = i.BookingId,
                     BookingCode = i.Booking.BookingCode,
                     CreatedAt = i.CreatedAt,
@@ -68,7 +68,7 @@ namespace HotelManagementAPI.Controllers
                 Id = invoice.Id,
                 InvoiceCode = invoice.InvoiceCode,
                 CustomerId = invoice.CustomerId,
-                CustomerName = invoice.Customer.FullName,
+                CustomerName = invoice.Customer.UserName,
                 CustomerPhone = invoice.Customer.Phone,
                 CustomerEmail = invoice.Customer.Email,
                 BookingId = invoice.BookingId,
@@ -85,12 +85,12 @@ namespace HotelManagementAPI.Controllers
             };
         }
 
-        // GET: api/Invoices/customer/5
-        [HttpGet("customer/{customerId}")]
-        public async Task<ActionResult<IEnumerable<InvoiceDTO>>> GetInvoicesByCustomer(int customerId)
+        // GET: api/Invoices/Customer/5
+        [HttpGet("Customer/{CustomerId}")]
+        public async Task<ActionResult<IEnumerable<InvoiceDTO>>> GetInvoicesByCustomer(int CustomerId)
         {
-            var customer = await _context.Customers.FindAsync(customerId);
-            if (customer == null)
+            var Customer = await _context.Customers.FindAsync(CustomerId);
+            if (Customer == null)
             {
                 return NotFound("Không tìm thấy khách hàng");
             }
@@ -98,13 +98,13 @@ namespace HotelManagementAPI.Controllers
             return await _context.Invoices
                 .Include(i => i.Customer)
                 .Include(i => i.Booking)
-                .Where(i => i.CustomerId == customerId)
+                .Where(i => i.CustomerId == CustomerId)
                 .Select(i => new InvoiceDTO
                 {
                     Id = i.Id,
                     InvoiceCode = i.InvoiceCode,
                     CustomerId = i.CustomerId,
-                    CustomerName = i.Customer.FullName,
+                    CustomerName = i.Customer.UserName,
                     BookingId = i.BookingId,
                     BookingCode = i.Booking.BookingCode,
                     CreatedAt = i.CreatedAt,
@@ -132,8 +132,8 @@ namespace HotelManagementAPI.Controllers
             }
 
             // Kiểm tra xem khách hàng có tồn tại không
-            var customer = await _context.Customers.FindAsync(createInvoiceDTO.CustomerId);
-            if (customer == null)
+            var Customer = await _context.Customers.FindAsync(createInvoiceDTO.CustomerId);
+            if (Customer == null)
             {
                 return BadRequest("Không tìm thấy khách hàng");
             }
@@ -170,7 +170,7 @@ namespace HotelManagementAPI.Controllers
                 Id = invoice.Id,
                 InvoiceCode = invoice.InvoiceCode,
                 CustomerId = invoice.CustomerId,
-                CustomerName = customer.FullName,
+                CustomerName = Customer.UserName,
                 BookingId = invoice.BookingId,
                 BookingCode = booking.BookingCode,
                 CreatedAt = invoice.CreatedAt,
@@ -191,7 +191,7 @@ namespace HotelManagementAPI.Controllers
                 return NotFound();
             }
 
-            // Không cho phép thay đổi mã hóa đơn, customer và booking
+            // Không cho phép thay đổi mã hóa đơn, Customer và booking
             invoice.TotalAmount = updateInvoiceDTO.TotalAmount;
             invoice.Status = updateInvoiceDTO.Status;
             invoice.PaymentMethod = updateInvoiceDTO.PaymentMethod;

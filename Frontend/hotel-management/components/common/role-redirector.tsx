@@ -1,39 +1,32 @@
 "use client"
 
-import { useAuth } from "@/lib/auth-context"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
-import * as authService from '@/lib/auth-service'
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getUserType } from '@/lib/auth-service';
 
-export function RoleRedirector() {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth()
-  const router = useRouter()
-  
+export const RoleRedirector = () => {
+  const router = useRouter();
+
   useEffect(() => {
-    if (isLoading) return;
-    
-    if (isAuthenticated) {
-      const userType = authService.getUserType();
-      
-      // Nếu đã đăng nhập, chuyển hướng đến trang phù hợp với vai trò
-      if (isAdmin || userType === 'admin') {
-        router.push("/admin/dashboard")
-      } else {
-        router.push("/staff/dashboard")
+    const userType = getUserType();
+    if (userType) {
+      switch (userType.toLowerCase()) {
+        case 'admin':
+          router.push('/admin/dashboard');
+          break;
+        case 'staff':
+          router.push('/staff/dashboard');
+          break;
+        case 'customer':
+          router.push('/customer/dashboard');
+          break;
+        default:
+          router.push('/login');
       }
     } else {
-      router.push("/login")
+      router.push('/login');
     }
-  }, [isAuthenticated, isAdmin, router, isLoading])
-  
-  // Hiển thị loading khi đang xử lý
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white">
-        <div className="w-12 h-12 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-      </div>
-    )
-  }
-  
-  return null
-} 
+  }, [router]);
+
+  return null;
+}; 

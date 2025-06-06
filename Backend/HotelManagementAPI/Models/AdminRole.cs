@@ -12,7 +12,7 @@ namespace HotelManagementAPI.Models
         /// Khóa chính kép: ID của Admin.
         /// </summary>
         [Key]
-        [Column("admin_id", Order = 0)]
+        [Column("Admin_id", Order = 0)]
         public int AdminId { get; set; }
         
         /// <summary>

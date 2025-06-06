@@ -1,10 +1,10 @@
--- Bảng tài khoản admin
-CREATE TABLE admins (
+-- Bảng tài khoản Admin
+CREATE TABLE Admins (
     id INT IDENTITY(1,1) PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     email VARCHAR(100),
-    role VARCHAR(20) DEFAULT 'admin'
+    role VARCHAR(20) DEFAULT 'Admin'
 );
 
 -- Bảng loại phòng
@@ -31,10 +31,10 @@ CREATE TABLE rooms (
 );
 
 -- Bảng khách hàng
-CREATE TABLE customers (
+CREATE TABLE Customers (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    customer_code VARCHAR(10) NOT NULL UNIQUE,
-    full_name VARCHAR(100) NOT NULL,
+    Customer_code VARCHAR(10) NOT NULL UNIQUE,
+    UserName VARCHAR(100) NOT NULL,
     email VARCHAR(100),
     phone VARCHAR(20),
     identity_number VARCHAR(20), -- CCCD/CMND
@@ -46,12 +46,12 @@ CREATE TABLE customers (
 CREATE TABLE bookings (
     id INT IDENTITY(1,1) PRIMARY KEY,
     booking_code VARCHAR(10) NOT NULL UNIQUE,
-    customer_id INT NOT NULL,
+    Customer_id INT NOT NULL,
     room_id INT NOT NULL,
     check_in DATE NOT NULL,
     check_out DATE NOT NULL,
     status VARCHAR(50), -- Đã xác nhận, Chờ xác nhận, Đã hủy
-    FOREIGN KEY (customer_id) REFERENCES customers(id),
+    FOREIGN KEY (Customer_id) REFERENCES Customers(id),
     FOREIGN KEY (room_id) REFERENCES rooms(id)
 );
 
@@ -59,12 +59,12 @@ CREATE TABLE bookings (
 CREATE TABLE invoices (
     id INT IDENTITY(1,1) PRIMARY KEY,
     invoice_code VARCHAR(15) NOT NULL UNIQUE,
-    customer_id INT NOT NULL,
+    Customer_id INT NOT NULL,
     booking_id INT,
     created_at DATE NOT NULL,
     total_amount DECIMAL(15,2) NOT NULL,
     status VARCHAR(50), -- Đã thanh toán, Chờ thanh toán
-    FOREIGN KEY (customer_id) REFERENCES customers(id),
+    FOREIGN KEY (Customer_id) REFERENCES Customers(id),
     FOREIGN KEY (booking_id) REFERENCES bookings(id)
 );
 
@@ -89,10 +89,10 @@ CREATE TABLE events (
 );
 
 -- Bảng nhân viên
-CREATE TABLE staff (
+CREATE TABLE Staff (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    staff_code VARCHAR(10) NOT NULL UNIQUE,
-    full_name VARCHAR(100) NOT NULL,
+    Staff_code VARCHAR(10) NOT NULL UNIQUE,
+    UserName VARCHAR(100) NOT NULL,
     email VARCHAR(100),
     phone VARCHAR(20),
     position VARCHAR(50),
@@ -107,12 +107,12 @@ CREATE TABLE roles (
     description VARCHAR(255)
 );
 
--- Bảng gán vai trò cho tài khoản admin (admin_roles)
-CREATE TABLE admin_roles (
-    admin_id INT NOT NULL,
+-- Bảng gán vai trò cho tài khoản Admin (Admin_roles)
+CREATE TABLE Admin_roles (
+    Admin_id INT NOT NULL,
     role_id INT NOT NULL,
-    PRIMARY KEY (admin_id, role_id),
-    FOREIGN KEY (admin_id) REFERENCES admins(id),
+    PRIMARY KEY (Admin_id, role_id),
+    FOREIGN KEY (Admin_id) REFERENCES Admins(id),
     FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 

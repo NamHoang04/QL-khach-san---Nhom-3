@@ -1,4 +1,4 @@
-import { get, post, put, del } from './api-service';
+import { fetchData, postData, putData, deleteData } from './api';
 
 // Định nghĩa interface cho phòng
 export interface Room {
@@ -26,60 +26,60 @@ export interface RoomType {
 
 // Hàm lấy danh sách phòng
 export async function getRooms(): Promise<Room[]> {
-  return get<Room[]>('rooms');
+  return fetchData('/rooms');
 }
 
 // Hàm lấy chi tiết phòng theo ID
-export async function getRoomById(id: string): Promise<Room | null> {
-  return get<Room>(`rooms/${id}`);
+export async function getRoomById(id: string): Promise<Room> {
+  return fetchData(`/rooms/${id}`);
 }
 
 // Hàm lấy phòng theo số phòng
-export async function getRoomByNumber(roomNumber: string): Promise<Room | null> {
-  return get<Room>(`rooms/byNumber/${roomNumber}`);
+export async function getRoomByNumber(roomNumber: string): Promise<Room> {
+  return fetchData(`/rooms/byNumber/${roomNumber}`);
 }
 
 // Hàm tạo phòng mới
 export async function createRoom(room: Omit<Room, 'id'>): Promise<Room> {
-  return post<Room>('rooms', room);
+  return postData('/rooms', room);
 }
 
 // Hàm cập nhật phòng
 export async function updateRoom(id: string, roomData: Partial<Room>): Promise<Room> {
-  return put<Room>(`rooms/${id}`, roomData);
+  return putData(`/rooms/${id}`, roomData);
 }
 
 // Hàm xóa phòng
 export async function deleteRoom(id: string): Promise<void> {
-  return del<void>(`rooms/${id}`);
+  return deleteData(`/rooms/${id}`);
 }
 
 // Hàm lấy danh sách loại phòng
 export async function getRoomTypes(): Promise<RoomType[]> {
-  return get<RoomType[]>('roomtypes');
+  return fetchData('/roomtypes');
 }
 
 // Hàm lấy chi tiết loại phòng theo ID
-export async function getRoomTypeById(id: string): Promise<RoomType | null> {
-  return get<RoomType>(`roomtypes/${id}`);
+export async function getRoomTypeById(id: string): Promise<RoomType> {
+  return fetchData(`/roomtypes/${id}`);
 }
 
 // Hàm tạo loại phòng mới
 export async function createRoomType(roomType: Omit<RoomType, 'id'>): Promise<RoomType> {
-  return post<RoomType>('roomtypes', roomType);
+  return postData('/roomtypes', roomType);
 }
 
 // Hàm cập nhật loại phòng
 export async function updateRoomType(id: string, roomTypeData: Partial<RoomType>): Promise<RoomType> {
-  return put<RoomType>(`roomtypes/${id}`, roomTypeData);
+  return putData(`/roomtypes/${id}`, roomTypeData);
 }
 
 // Hàm xóa loại phòng
 export async function deleteRoomType(id: string): Promise<void> {
-  return del<void>(`roomtypes/${id}`);
+  return deleteData(`/roomtypes/${id}`);
 }
 
 // Hàm lấy danh sách phòng có sẵn cho đặt phòng
 export async function getAvailableRooms(checkInDate: string, checkOutDate: string): Promise<Room[]> {
-  return get<Room[]>(`rooms/available?checkInDate=${checkInDate}&checkOutDate=${checkOutDate}`);
+  return fetchData(`/rooms/available?checkInDate=${checkInDate}&checkOutDate=${checkOutDate}`);
 } 

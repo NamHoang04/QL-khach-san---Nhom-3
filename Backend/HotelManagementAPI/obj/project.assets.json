@@ -4312,7 +4312,7 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\NamHoang\\.nuget\\packages\\": {}
+    "C:\\Users\\Nam Hoangg\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
@@ -4320,11 +4320,11 @@
       "projectUniqueName": "D:\\2-- Code phat trien ung dung web\\Web final\\Project\\Backend\\HotelManagementAPI\\HotelManagementAPI.csproj",
       "projectName": "HotelManagementAPI",
       "projectPath": "D:\\2-- Code phat trien ung dung web\\Web final\\Project\\Backend\\HotelManagementAPI\\HotelManagementAPI.csproj",
-      "packagesPath": "C:\\Users\\NamHoang\\.nuget\\packages\\",
+      "packagesPath": "C:\\Users\\Nam Hoangg\\.nuget\\packages\\",
       "outputPath": "D:\\2-- Code phat trien ung dung web\\Web final\\Project\\Backend\\HotelManagementAPI\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\NamHoang\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\Nam Hoangg\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"

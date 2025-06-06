@@ -15,7 +15,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "admin,staff")]
+    [Authorize(Roles = "Admin,Staff")]
     public class StaffController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -31,13 +31,13 @@ namespace HotelManagementAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<StaffDTO>>> GetStaff()
         {
-            var staffList = await _context.Staffs.ToListAsync();
+            var StaffList = await _context.Staffs.ToListAsync();
 
-            return staffList.Select(s => new StaffDTO
+            return StaffList.Select(s => new StaffDTO
             {
                 Id = s.Id,
                 StaffCode = s.StaffCode,
-                FullName = s.FullName,
+                UserName = s.UserName,
                 Email = s.Email,
                 Phone = s.Phone,
                 Position = s.Position,
@@ -50,23 +50,23 @@ namespace HotelManagementAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<StaffDTO>> GetStaff(int id)
         {
-            var staff = await _context.Staffs.FindAsync(id);
+            var Staff = await _context.Staffs.FindAsync(id);
 
-            if (staff == null)
+            if (Staff == null)
             {
                 return NotFound();
             }
 
             return new StaffDTO
             {
-                Id = staff.Id,
-                StaffCode = staff.StaffCode,
-                FullName = staff.FullName,
-                Email = staff.Email,
-                Phone = staff.Phone,
-                Position = staff.Position,
-                Status = staff.Status,
-                AvatarUrl = staff.AvatarUrl
+                Id = Staff.Id,
+                StaffCode = Staff.StaffCode,
+                UserName = Staff.UserName,
+                Email = Staff.Email,
+                Phone = Staff.Phone,
+                Position = Staff.Position,
+                Status = Staff.Status,
+                AvatarUrl = Staff.AvatarUrl
             };
         }
 
@@ -83,10 +83,10 @@ namespace HotelManagementAPI.Controllers
                 return BadRequest("Staff code already exists");
             }
 
-            var staff = new Staff
+            var Staff = new Staff
             {
                 StaffCode = createStaffDTO.StaffCode,
-                FullName = createStaffDTO.FullName,
+                UserName = createStaffDTO.UserName,
                 Email = createStaffDTO.Email,
                 Phone = createStaffDTO.Phone,
                 Position = createStaffDTO.Position,
@@ -95,19 +95,19 @@ namespace HotelManagementAPI.Controllers
                 Password = HashPassword(createStaffDTO.Password) // Mã hóa mật khẩu trước khi lưu
             };
 
-            _context.Staffs.Add(staff);
+            _context.Staffs.Add(Staff);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetStaff), new { id = staff.Id }, new StaffDTO
+            return CreatedAtAction(nameof(GetStaff), new { id = Staff.Id }, new StaffDTO
             {
-                Id = staff.Id,
-                StaffCode = staff.StaffCode,
-                FullName = staff.FullName,
-                Email = staff.Email,
-                Phone = staff.Phone,
-                Position = staff.Position,
-                Status = staff.Status,
-                AvatarUrl = staff.AvatarUrl
+                Id = Staff.Id,
+                StaffCode = Staff.StaffCode,
+                UserName = Staff.UserName,
+                Email = Staff.Email,
+                Phone = Staff.Phone,
+                Position = Staff.Position,
+                Status = Staff.Status,
+                AvatarUrl = Staff.AvatarUrl
             });
         }
 
@@ -115,18 +115,18 @@ namespace HotelManagementAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStaff(int id, UpdateStaffDTO updateStaffDTO)
         {
-            var staff = await _context.Staffs.FindAsync(id);
-            if (staff == null)
+            var Staff = await _context.Staffs.FindAsync(id);
+            if (Staff == null)
             {
                 return NotFound();
             }
 
-            staff.FullName = updateStaffDTO.FullName;
-            staff.Email = updateStaffDTO.Email;
-            staff.Phone = updateStaffDTO.Phone;
-            staff.Position = updateStaffDTO.Position;
-            staff.Status = updateStaffDTO.Status;
-            staff.AvatarUrl = updateStaffDTO.AvatarUrl;
+            Staff.UserName = updateStaffDTO.UserName;
+            Staff.Email = updateStaffDTO.Email;
+            Staff.Phone = updateStaffDTO.Phone;
+            Staff.Position = updateStaffDTO.Position;
+            Staff.Status = updateStaffDTO.Status;
+            Staff.AvatarUrl = updateStaffDTO.AvatarUrl;
 
             try
             {
@@ -151,13 +151,13 @@ namespace HotelManagementAPI.Controllers
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> UpdateStaffStatus(int id, StaffStatusUpdateDTO statusUpdateDTO)
         {
-            var staff = await _context.Staffs.FindAsync(id);
-            if (staff == null)
+            var Staff = await _context.Staffs.FindAsync(id);
+            if (Staff == null)
             {
                 return NotFound();
             }
 
-            staff.Status = statusUpdateDTO.Status;
+            Staff.Status = statusUpdateDTO.Status;
 
             try
             {
@@ -182,38 +182,45 @@ namespace HotelManagementAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStaff(int id)
         {
-            var staff = await _context.Staffs.FindAsync(id);
-            if (staff == null)
+            var Staff = await _context.Staffs.FindAsync(id);
+            if (Staff == null)
             {
                 return NotFound();
             }
 
-            _context.Staffs.Remove(staff);
+            _context.Staffs.Remove(Staff);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
         // POST: api/Staff/login
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDTO loginDto)
         {
-            var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.StaffCode == loginDto.Username);
-            if (staff == null || !VerifyPassword(loginDto.Password, staff.Password))
+            var Staff = await _context.Staffs.FirstOrDefaultAsync(s => s.StaffCode == loginDto.UserName);
+            if (Staff == null)
             {
                 return Unauthorized("Sai tài khoản hoặc mật khẩu");
             }
 
-            var token = GenerateJwtToken(staff.Id, staff.StaffCode, "staff");
+            // So sánh mật khẩu plain text do DB lưu mật khẩu chưa mã hóa
+            if (Staff.Password != loginDto.Password)
+            {
+                return Unauthorized("Sai tài khoản hoặc mật khẩu");
+            }
+
+            var token = GenerateJwtToken(Staff.Id, Staff.StaffCode, "Staff");
             return Ok(new { token });
         }
 
-        private string GenerateJwtToken(int id, string staffCode, string role)
+        private string GenerateJwtToken(int id, string StaffCode, string role)
         {
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, id.ToString()),
-                new Claim(ClaimTypes.Name, staffCode),
+                new Claim(ClaimTypes.Name, StaffCode),
                 new Claim(ClaimTypes.Role, role)
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"] ?? "DefaultSecretKeyForDevelopment12345678901234"));

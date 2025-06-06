@@ -28,17 +28,17 @@ namespace HotelManagementAPI.Controllers
         [ProducesResponseType(typeof(ApiResponse<AuthResponseDTO>), 401)]
         public async Task<ActionResult<ApiResponse<AuthResponseDTO>>> Login(LoginDTO loginDto)
         {
-            _logger.LogInformation("Đang xử lý yêu cầu đăng nhập cho người dùng: {Username}", loginDto.Username);
+            _logger.LogInformation("Đang xử lý yêu cầu đăng nhập cho người dùng: {Username}", loginDto.UserName);
             
             var authResult = await _authService.Login(loginDto);
             
             if (!authResult.Success)
             {
-                _logger.LogWarning("Đăng nhập thất bại cho người dùng: {Username}", loginDto.Username);
+                _logger.LogWarning("Đăng nhập thất bại cho người dùng: {Username}", loginDto.UserName);
                 return Unauthorized(ApiResponse<AuthResponseDTO>.Unauthorized(Constants.Messages.LoginFailed));
             }
             
-            _logger.LogInformation("Đăng nhập thành công cho người dùng: {Username}", loginDto.Username);
+            _logger.LogInformation("Đăng nhập thành công cho người dùng: {Username}", loginDto.UserName);
             return Ok(ApiResponse<AuthResponseDTO>.Ok(authResult, Constants.Messages.LoginSuccess));
         }
 

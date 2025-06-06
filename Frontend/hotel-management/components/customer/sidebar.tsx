@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
 import { 
   Home, 
   Calendar, 
@@ -12,15 +13,42 @@ import {
   UserCircle, 
   Heart,
   Menu, 
-  X 
+  X,
+  LogOut
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { logout } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
+  }
+
+  const handleLogout = () => {
+    try {
+      // Xóa token và thông tin người dùng
+      logout()
+      
+      // Đóng menu mobile nếu đang mở
+      setIsMenuOpen(false)
+      
+      // Hiển thị thông báo thành công
+      toast.success("Đăng xuất thành công")
+      
+      // Chuyển hướng đến trang đăng nhập
+      setTimeout(() => {
+        router.push('/login')
+        router.refresh()
+      }, 100)
+    } catch (error) {
+      console.error("Logout error:", error)
+      toast.error("Có lỗi xảy ra khi đăng xuất")
+    }
   }
 
   const routes = [
@@ -110,14 +138,14 @@ export function Sidebar() {
             </nav>
 
             {/* Log out button (desktop) */}
-            <div className="hidden md:block">
-              <Link 
-                href="/login" 
-                className="flex items-center px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm"
-              >
-                Đăng xuất
-              </Link>
-            </div>
+            <Button 
+              onClick={handleLogout}
+              variant="destructive"
+              className="hidden md:flex items-center gap-2"
+            >
+              <LogOut size={16} />
+              <span>Đăng xuất</span>
+            </Button>
           </div>
         </div>
       </header>
@@ -162,13 +190,15 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="p-4 border-t">
-          <Link 
-            href="/login" 
-            className="flex items-center justify-center w-full px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+        <div className="p-4">
+          <Button 
+            onClick={handleLogout}
+            variant="destructive"
+            className="w-full flex items-center justify-center gap-2"
           >
-            Đăng xuất
-          </Link>
+            <LogOut size={20} />
+            <span>Đăng xuất</span>
+          </Button>
         </div>
       </div>
     </>

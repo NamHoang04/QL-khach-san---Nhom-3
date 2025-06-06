@@ -59,14 +59,14 @@ namespace HotelManagementAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("admins", (string)null);
+                    b.ToTable("Admins", (string)null);
                 });
 
             modelBuilder.Entity("HotelManagementAPI.Models.AdminRole", b =>
                 {
                     b.Property<int>("AdminId")
                         .HasColumnType("int")
-                        .HasColumnName("admin_id")
+                        .HasColumnName("Admin_id")
                         .HasColumnOrder(0);
 
                     b.Property<int>("RoleId")
@@ -78,7 +78,7 @@ namespace HotelManagementAPI.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("admin_roles", (string)null);
+                    b.ToTable("Admin_roles", (string)null);
                 });
 
             modelBuilder.Entity("HotelManagementAPI.Models.Booking", b =>
@@ -106,7 +106,7 @@ namespace HotelManagementAPI.Migrations
 
                     b.Property<int>("CustomerId")
                         .HasColumnType("int")
-                        .HasColumnName("customer_id");
+                        .HasColumnName("Customer_id");
 
                     b.Property<int>("RoomId")
                         .HasColumnType("int")
@@ -144,18 +144,18 @@ namespace HotelManagementAPI.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
-                        .HasColumnName("customer_code");
+                        .HasColumnName("Customer_code");
 
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("email");
 
-                    b.Property<string>("FullName")
+                    b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
-                        .HasColumnName("full_name");
+                        .HasColumnName("UserName");
 
                     b.Property<string>("IdentityNumber")
                         .HasMaxLength(20)
@@ -175,7 +175,7 @@ namespace HotelManagementAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("customers", (string)null);
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("HotelManagementAPI.Models.Event", b =>
@@ -243,7 +243,7 @@ namespace HotelManagementAPI.Migrations
 
                     b.Property<int>("CustomerId")
                         .HasColumnType("int")
-                        .HasColumnName("customer_id");
+                        .HasColumnName("Customer_id");
 
                     b.Property<string>("InvoiceCode")
                         .IsRequired()
@@ -479,11 +479,11 @@ namespace HotelManagementAPI.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("email");
 
-                    b.Property<string>("FullName")
+                    b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
-                        .HasColumnName("full_name");
+                        .HasColumnName("UserName");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
@@ -499,7 +499,7 @@ namespace HotelManagementAPI.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)")
-                        .HasColumnName("staff_code");
+                        .HasColumnName("Staff_code");
 
                     b.Property<string>("Status")
                         .HasMaxLength(50)
@@ -508,7 +508,7 @@ namespace HotelManagementAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("staff", (string)null);
+                    b.ToTable("Staff", (string)null);
                 });
 
             modelBuilder.Entity("HotelManagementAPI.Models.AdminRole", b =>

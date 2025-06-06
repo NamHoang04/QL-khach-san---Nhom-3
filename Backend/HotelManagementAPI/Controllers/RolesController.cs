@@ -12,7 +12,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "Admin")]
     public class RolesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -208,11 +208,11 @@ namespace HotelManagementAPI.Controllers
                 return NotFound();
             }
 
-            // Kiểm tra xem vai trò đã được gán cho admin nào chưa
+            // Kiểm tra xem vai trò đã được gán cho Admin nào chưa
             var hasAdmins = await _context.AdminRoles.AnyAsync(ar => ar.RoleId == id);
             if (hasAdmins)
             {
-                return BadRequest("Cannot delete role because it is assigned to admins");
+                return BadRequest("Cannot delete role because it is assigned to Admins");
             }
 
             _context.Roles.Remove(role);

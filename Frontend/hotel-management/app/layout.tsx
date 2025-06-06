@@ -20,9 +20,9 @@ export default function RootLayout({
         <AuthProvider>
           <SavedProvider>
             <SidebarProvider>
-              <div className="flex min-h-screen">
+              <main className="flex-1">
                 {children}
-              </div>
+              </main>
               <Toaster position="top-right" richColors />
             </SidebarProvider>
           </SavedProvider>

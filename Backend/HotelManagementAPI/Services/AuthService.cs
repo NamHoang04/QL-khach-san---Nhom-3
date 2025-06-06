@@ -34,11 +34,25 @@ namespace HotelManagementAPI.Services
 
         public async Task<AuthResponseDTO> Login(LoginDTO loginDto)
         {
-            // Tìm kiếm admin
-            var admin = await _context.Admins.FirstOrDefaultAsync(a => a.Username == loginDto.Username);
-            if (admin != null && VerifyPassword(loginDto.Password, admin.Password))
+            // Tìm kiếm Admin
+            var Admin = await _context.Admins.FirstOrDefaultAsync(a => a.Username == loginDto.UserName);
+            if (Admin != null && VerifyPassword(loginDto.Password, Admin.Password))
             {
-                var token = GenerateJwtToken(admin.Id.ToString(), admin.Username, Constants.Roles.Admin);
+                var token = GenerateJwtToken(Admin.Id.ToString(), Admin.Username, Constants.Roles.Admin);
+                
+                return new AuthResponseDTO
+                {
+                    Success = true,
+                    Message = Constants.Messages.LoginSuccess,
+                    Token = token
+                };
+            }
+            
+            // Tìm kiếm Staff
+            var Staff = await _context.Staffs.FirstOrDefaultAsync(s => s.UserName == loginDto.UserName);
+            if (Staff != null && VerifyPassword(loginDto.Password, Staff.Password))
+            {
+                var token = GenerateJwtToken(Staff.Id.ToString(), Staff.UserName, Constants.Roles.Staff);
                 
                 return new AuthResponseDTO
                 {
@@ -49,13 +63,13 @@ namespace HotelManagementAPI.Services
             }
             
             // Tìm kiếm khách hàng
-            var customer = await _context.Customers.FirstOrDefaultAsync(c => 
-                c.FullName == loginDto.Username || 
-                (c.Email != null && c.Email == loginDto.Username));
+            var Customer = await _context.Customers.FirstOrDefaultAsync(c => 
+                c.UserName == loginDto.UserName || 
+                (c.Email != null && c.Email == loginDto.UserName));
                 
-            if (customer != null && VerifyPassword(loginDto.Password, customer.Password))
+            if (Customer != null && VerifyPassword(loginDto.Password, Customer.Password))
             {
-                var token = GenerateJwtToken(customer.Id.ToString(), customer.FullName, Constants.Roles.Customer);
+                var token = GenerateJwtToken(Customer.Id.ToString(), Customer.UserName, Constants.Roles.Customer);
 
                 return new AuthResponseDTO
                 {
@@ -64,13 +78,13 @@ namespace HotelManagementAPI.Services
                     Token = token,
                     User = new CustomerDTO
                     {
-                        Id = customer.Id,
-                        CustomerCode = customer.CustomerCode,
-                        FullName = customer.FullName,
-                        Email = customer.Email,
-                        Phone = customer.Phone,
-                        IdentityNumber = customer.IdentityNumber,
-                        Address = customer.Address
+                        Id = Customer.Id,
+                        CustomerCode = Customer.CustomerCode,
+                        UserName = Customer.UserName,
+                        Email = Customer.Email,
+                        Phone = Customer.Phone,
+                        IdentityNumber = Customer.IdentityNumber,
+                        Address = Customer.Address
                     }
                 };
             }
@@ -117,16 +131,16 @@ namespace HotelManagementAPI.Services
             }
             
             // Tạo mã khách hàng
-            string customerCode = GenerateCustomerCode();
+            string CustomerCode = GenerateCustomerCode();
             
             // Mã hóa mật khẩu
             string hashedPassword = HashPassword(registerDto.Password);
             
             // Tạo khách hàng mới
-            var customer = new Customer
+            var Customer = new Customer
             {
-                CustomerCode = customerCode,
-                FullName = registerDto.Username,
+                CustomerCode = CustomerCode,
+                UserName = registerDto.Username,
                 Email = registerDto.Email,
                 Phone = registerDto.Phone,
                 IdentityNumber = registerDto.IdentityNumber,
@@ -134,10 +148,10 @@ namespace HotelManagementAPI.Services
                 Password = hashedPassword
             };
             
-            _context.Customers.Add(customer);
+            _context.Customers.Add(Customer);
             await _context.SaveChangesAsync();
             
-            var token = GenerateJwtToken(customer.Id.ToString(), customer.FullName, Constants.Roles.Customer);
+            var token = GenerateJwtToken(Customer.Id.ToString(), Customer.UserName, Constants.Roles.Customer);
             
             return new AuthResponseDTO
             {
@@ -146,13 +160,13 @@ namespace HotelManagementAPI.Services
                 Token = token,
                 User = new CustomerDTO
                 {
-                    Id = customer.Id,
-                    CustomerCode = customer.CustomerCode,
-                    FullName = customer.FullName,
-                    Email = customer.Email,
-                    Phone = customer.Phone,
-                    IdentityNumber = customer.IdentityNumber,
-                    Address = customer.Address
+                    Id = Customer.Id,
+                    CustomerCode = Customer.CustomerCode,
+                    UserName = Customer.UserName,
+                    Email = Customer.Email,
+                    Phone = Customer.Phone,
+                    IdentityNumber = Customer.IdentityNumber,
+                    Address = Customer.Address
                 }
             };
         }

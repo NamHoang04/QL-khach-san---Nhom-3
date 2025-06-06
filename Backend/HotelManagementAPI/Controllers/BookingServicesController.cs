@@ -12,7 +12,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "admin,staff,customer")]
+    [Authorize(Roles = "Admin,Staff,Customer")]
     public class BookingServicesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

@@ -12,7 +12,7 @@ namespace HotelManagementAPI.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "admins",
+                name: "Admins",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "int", nullable: false)
@@ -24,17 +24,17 @@ namespace HotelManagementAPI.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_admins", x => x.id);
+                    table.PrimaryKey("PK_Admins", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "customers",
+                name: "Customers",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    customer_code = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    full_name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Customer_code = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    UserName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     identity_number = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
@@ -43,7 +43,7 @@ namespace HotelManagementAPI.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_customers", x => x.id);
+                    table.PrimaryKey("PK_Customers", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -128,13 +128,13 @@ namespace HotelManagementAPI.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "staff",
+                name: "Staff",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    staff_code = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    full_name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Staff_code = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    UserName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     position = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
@@ -143,27 +143,27 @@ namespace HotelManagementAPI.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_staff", x => x.id);
+                    table.PrimaryKey("PK_Staff", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
-                name: "admin_roles",
+                name: "Admin_roles",
                 columns: table => new
                 {
-                    admin_id = table.Column<int>(type: "int", nullable: false),
+                    Admin_id = table.Column<int>(type: "int", nullable: false),
                     role_id = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_admin_roles", x => new { x.admin_id, x.role_id });
+                    table.PrimaryKey("PK_Admin_roles", x => new { x.Admin_id, x.role_id });
                     table.ForeignKey(
-                        name: "FK_admin_roles_admins_admin_id",
-                        column: x => x.admin_id,
-                        principalTable: "admins",
+                        name: "FK_Admin_roles_Admins_Admin_id",
+                        column: x => x.Admin_id,
+                        principalTable: "Admins",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_admin_roles_roles_role_id",
+                        name: "FK_Admin_roles_roles_role_id",
                         column: x => x.role_id,
                         principalTable: "roles",
                         principalColumn: "id",
@@ -224,7 +224,7 @@ namespace HotelManagementAPI.Migrations
                     id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     booking_code = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    customer_id = table.Column<int>(type: "int", nullable: false),
+                    Customer_id = table.Column<int>(type: "int", nullable: false),
                     room_id = table.Column<int>(type: "int", nullable: false),
                     check_in = table.Column<DateTime>(type: "date", nullable: false),
                     check_out = table.Column<DateTime>(type: "date", nullable: false),
@@ -234,9 +234,9 @@ namespace HotelManagementAPI.Migrations
                 {
                     table.PrimaryKey("PK_bookings", x => x.id);
                     table.ForeignKey(
-                        name: "FK_bookings_customers_customer_id",
-                        column: x => x.customer_id,
-                        principalTable: "customers",
+                        name: "FK_bookings_Customers_Customer_id",
+                        column: x => x.Customer_id,
+                        principalTable: "Customers",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -254,7 +254,7 @@ namespace HotelManagementAPI.Migrations
                     id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     invoice_code = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
-                    customer_id = table.Column<int>(type: "int", nullable: false),
+                    Customer_id = table.Column<int>(type: "int", nullable: false),
                     booking_id = table.Column<int>(type: "int", nullable: true),
                     created_at = table.Column<DateTime>(type: "date", nullable: false),
                     total_amount = table.Column<decimal>(type: "decimal(15,2)", nullable: false),
@@ -271,22 +271,22 @@ namespace HotelManagementAPI.Migrations
                         principalTable: "bookings",
                         principalColumn: "id");
                     table.ForeignKey(
-                        name: "FK_invoices_customers_customer_id",
-                        column: x => x.customer_id,
-                        principalTable: "customers",
+                        name: "FK_invoices_Customers_Customer_id",
+                        column: x => x.Customer_id,
+                        principalTable: "Customers",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_admin_roles_role_id",
-                table: "admin_roles",
+                name: "IX_Admin_roles_role_id",
+                table: "Admin_roles",
                 column: "role_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_bookings_customer_id",
+                name: "IX_bookings_Customer_id",
                 table: "bookings",
-                column: "customer_id");
+                column: "Customer_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_bookings_room_id",
@@ -299,9 +299,9 @@ namespace HotelManagementAPI.Migrations
                 column: "booking_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_invoices_customer_id",
+                name: "IX_invoices_Customer_id",
                 table: "invoices",
-                column: "customer_id");
+                column: "Customer_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_role_permissions_permission_id",
@@ -318,7 +318,7 @@ namespace HotelManagementAPI.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "admin_roles");
+                name: "Admin_roles");
 
             migrationBuilder.DropTable(
                 name: "events");
@@ -333,10 +333,10 @@ namespace HotelManagementAPI.Migrations
                 name: "services");
 
             migrationBuilder.DropTable(
-                name: "staff");
+                name: "Staff");
 
             migrationBuilder.DropTable(
-                name: "admins");
+                name: "Admins");
 
             migrationBuilder.DropTable(
                 name: "bookings");
@@ -348,7 +348,7 @@ namespace HotelManagementAPI.Migrations
                 name: "roles");
 
             migrationBuilder.DropTable(
-                name: "customers");
+                name: "Customers");
 
             migrationBuilder.DropTable(
                 name: "rooms");

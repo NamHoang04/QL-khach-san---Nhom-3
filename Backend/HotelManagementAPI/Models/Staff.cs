@@ -11,13 +11,13 @@ namespace HotelManagementAPI.Models
         
         [Required]
         [StringLength(10)]
-        [Column("staff_code")]
+        [Column("Staff_code")]
         public string StaffCode { get; set; } = string.Empty;
         
         [Required]
         [StringLength(100)]
-        [Column("full_name")]
-        public string FullName { get; set; } = string.Empty;
+        [Column("username")]
+        public string UserName { get; set; } = string.Empty;
         
         [StringLength(100)]
         [Column("email")]

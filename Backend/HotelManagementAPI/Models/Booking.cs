@@ -29,7 +29,7 @@ namespace HotelManagementAPI.Models
         /// ID của khách hàng đặt phòng (liên kết với bảng Customer).
         /// </summary>
         [Required]
-        [Column("customer_id")]
+        [Column("Customer_id")]
         public int CustomerId { get; set; }
         
         /// <summary>

@@ -86,12 +86,12 @@ namespace HotelManagementAPI.Data
             context.SaveChanges();
 
             // Thêm khách hàng
-            var customers = new Customer[]
+            var Customers = new Customer[]
             {
                 new Customer
                 {
                     CustomerCode = "KH001",
-                    FullName = "Nguyễn Văn A",
+                    UserName = "Nguyễn Văn A",
                     Email = "nguyenvana@gmail.com",
                     Phone = "0901234567",
                     IdentityNumber = "079201012345"
@@ -99,7 +99,7 @@ namespace HotelManagementAPI.Data
                 new Customer
                 {
                     CustomerCode = "KH002",
-                    FullName = "Trần Thị B",
+                    UserName = "Trần Thị B",
                     Email = "tranthib@gmail.com",
                     Phone = "0912345678",
                     IdentityNumber = "079201054321"
@@ -107,14 +107,14 @@ namespace HotelManagementAPI.Data
                 new Customer
                 {
                     CustomerCode = "KH003",
-                    FullName = "Lê Văn C",
+                    UserName = "Lê Văn C",
                     Email = "levanc@gmail.com",
                     Phone = "0987654321",
                     IdentityNumber = "079201067890"
                 }
             };
 
-            foreach (Customer c in customers)
+            foreach (Customer c in Customers)
             {
                 context.Customers.Add(c);
             }
@@ -126,7 +126,7 @@ namespace HotelManagementAPI.Data
                 new Booking
                 {
                     BookingCode = "B00123",
-                    CustomerId = customers[0].Id,
+                    CustomerId = Customers[0].Id,
                     RoomId = rooms[0].Id,
                     CheckIn = DateTime.Parse("2024-06-01"),
                     CheckOut = DateTime.Parse("2024-06-03"),
@@ -135,7 +135,7 @@ namespace HotelManagementAPI.Data
                 new Booking
                 {
                     BookingCode = "B00124",
-                    CustomerId = customers[1].Id,
+                    CustomerId = Customers[1].Id,
                     RoomId = rooms[1].Id,
                     CheckIn = DateTime.Parse("2024-06-05"),
                     CheckOut = DateTime.Parse("2024-06-10"),
@@ -155,7 +155,7 @@ namespace HotelManagementAPI.Data
                 new Invoice
                 {
                     InvoiceCode = "INV00123",
-                    CustomerId = customers[0].Id,
+                    CustomerId = Customers[0].Id,
                     BookingId = bookings[0].Id,
                     CreatedAt = DateTime.Parse("2024-06-05"),
                     TotalAmount = 4500000,
@@ -164,7 +164,7 @@ namespace HotelManagementAPI.Data
                 new Invoice
                 {
                     InvoiceCode = "INV00124",
-                    CustomerId = customers[1].Id,
+                    CustomerId = Customers[1].Id,
                     BookingId = bookings[1].Id,
                     CreatedAt = DateTime.Parse("2024-06-04"),
                     TotalAmount = 7200000,
@@ -249,41 +249,41 @@ namespace HotelManagementAPI.Data
             context.SaveChanges();
 
             // Thêm nhân viên
-            var staffs = new Staff[]
+            var Staffs = new Staff[]
             {
                 new Staff
                 {
                     StaffCode = "NV001",
-                    FullName = "Nguyễn Thị Hương",
+                    UserName = "Nguyễn Thị Hương",
                     Email = "huong.nguyen@hotel.com",
                     Phone = "0901234567",
                     Position = "Lễ tân",
                     Status = "Đang làm việc",
-                    AvatarUrl = "https://example.com/staff1.jpg"
+                    AvatarUrl = "https://example.com/Staff1.jpg"
                 },
                 new Staff
                 {
                     StaffCode = "NV002",
-                    FullName = "Trần Văn Minh",
+                    UserName = "Trần Văn Minh",
                     Email = "minh.tran@hotel.com",
                     Phone = "0912345678",
                     Position = "Quản lý khu vực",
                     Status = "Đang làm việc",
-                    AvatarUrl = "https://example.com/staff2.jpg"
+                    AvatarUrl = "https://example.com/Staff2.jpg"
                 },
                 new Staff
                 {
                     StaffCode = "NV003",
-                    FullName = "Lê Thị Mai",
+                    UserName = "Lê Thị Mai",
                     Email = "mai.le@hotel.com",
                     Phone = "0987654321",
                     Position = "Nhân viên dịch vụ",
                     Status = "Tạm nghỉ",
-                    AvatarUrl = "https://example.com/staff3.jpg"
+                    AvatarUrl = "https://example.com/Staff3.jpg"
                 }
             };
 
-            foreach (Staff s in staffs)
+            foreach (Staff s in Staffs)
             {
                 context.Staffs.Add(s);
             }
@@ -296,12 +296,12 @@ namespace HotelManagementAPI.Data
                 new Permission { Name = "edit_rooms", Description = "Thêm, sửa, xóa phòng" },
                 new Permission { Name = "view_bookings", Description = "Xem danh sách đặt phòng" },
                 new Permission { Name = "edit_bookings", Description = "Thêm, sửa, xóa đặt phòng" },
-                new Permission { Name = "view_customers", Description = "Xem danh sách khách hàng" },
-                new Permission { Name = "edit_customers", Description = "Thêm, sửa, xóa khách hàng" },
+                new Permission { Name = "view_Customers", Description = "Xem danh sách khách hàng" },
+                new Permission { Name = "edit_Customers", Description = "Thêm, sửa, xóa khách hàng" },
                 new Permission { Name = "view_invoices", Description = "Xem danh sách hóa đơn" },
                 new Permission { Name = "edit_invoices", Description = "Thêm, sửa, xóa hóa đơn" },
-                new Permission { Name = "view_staff", Description = "Xem danh sách nhân viên" },
-                new Permission { Name = "edit_staff", Description = "Thêm, sửa, xóa nhân viên" },
+                new Permission { Name = "view_Staff", Description = "Xem danh sách nhân viên" },
+                new Permission { Name = "edit_Staff", Description = "Thêm, sửa, xóa nhân viên" },
                 new Permission { Name = "access_reports", Description = "Truy cập báo cáo thống kê" },
                 new Permission { Name = "manage_system", Description = "Quản lý hệ thống" }
             };
@@ -339,7 +339,7 @@ namespace HotelManagementAPI.Data
             }
 
             // Manager
-            var managerPermissions = new string[] { "view_rooms", "edit_rooms", "view_bookings", "edit_bookings", "view_customers", "edit_customers", "view_invoices", "edit_invoices", "view_staff", "access_reports" };
+            var managerPermissions = new string[] { "view_rooms", "edit_rooms", "view_bookings", "edit_bookings", "view_Customers", "edit_Customers", "view_invoices", "edit_invoices", "view_Staff", "access_reports" };
             foreach (var permName in managerPermissions)
             {
                 var perm = permissions.FirstOrDefault(p => p.Name == permName);
@@ -354,7 +354,7 @@ namespace HotelManagementAPI.Data
             }
 
             // Receptionist
-            var receptionistPermissions = new string[] { "view_rooms", "view_bookings", "edit_bookings", "view_customers", "edit_customers", "view_invoices" };
+            var receptionistPermissions = new string[] { "view_rooms", "view_bookings", "edit_bookings", "view_Customers", "edit_Customers", "view_invoices" };
             foreach (var permName in receptionistPermissions)
             {
                 var perm = permissions.FirstOrDefault(p => p.Name == permName);
@@ -369,8 +369,8 @@ namespace HotelManagementAPI.Data
             }
 
             // Staff
-            var staffPermissions = new string[] { "view_rooms", "view_bookings", "view_customers" };
-            foreach (var permName in staffPermissions)
+            var StaffPermissions = new string[] { "view_rooms", "view_bookings", "view_Customers" };
+            foreach (var permName in StaffPermissions)
             {
                 var perm = permissions.FirstOrDefault(p => p.Name == permName);
                 if (perm != null)
@@ -386,21 +386,21 @@ namespace HotelManagementAPI.Data
             context.SaveChanges();
 
             // Thêm Admin
-            string hashedPassword = HashPassword("admin123");
-            var admin = new Admin
+            string hashedPassword = HashPassword("Admin123");
+            var Admin = new Admin
             {
-                Username = "admin",
+                Username = "Admin",
                 Password = hashedPassword,
-                Email = "admin@hotel.com",
+                Email = "Admin@hotel.com",
                 Role = "Administrator"
             };
-            context.Admins.Add(admin);
+            context.Admins.Add(Admin);
             context.SaveChanges();
 
-            // Gán vai trò cho admin
+            // Gán vai trò cho Admin
             context.AdminRoles.Add(new AdminRole
             {
-                AdminId = admin.Id,
+                AdminId = Admin.Id,
                 RoleId = roles[0].Id // Administrator
             });
             context.SaveChanges();

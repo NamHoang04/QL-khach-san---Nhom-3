@@ -36,8 +36,8 @@ namespace HotelManagementAPI.Models
         /// Tên đầy đủ của Admin (có thể null).
         /// </summary>
         [StringLength(100)]
-        [Column("full_name")]
-        public string? FullName { get; set; }
+        [Column("UserName")]
+        public string? UserName { get; set; }
         
         [StringLength(100)]
         [Column("email")]
@@ -45,7 +45,7 @@ namespace HotelManagementAPI.Models
         
         [StringLength(20)]
         [Column("role")]
-        public string Role { get; set; } = "admin";
+        public string Role { get; set; } = "Admin";
         
         // Navigation properties
         /// <summary>

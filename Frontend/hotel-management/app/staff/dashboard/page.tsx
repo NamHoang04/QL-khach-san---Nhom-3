@@ -1,71 +1,36 @@
 "use client"
 
-import { useAuth } from "@/lib/auth-context"
-import { AuthGuard } from "@/components/auth-guard"
-import { useEffect, useState } from "react"
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth-service';
 
-export default function StaffDashboardPage() {
-  const { user, isLoading } = useAuth();
-  const [greeting, setGreeting] = useState("");
+export default function StaffDashboard() {
+    const router = useRouter();
 
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting("Chào buổi sáng");
-    else if (hour < 18) setGreeting("Chào buổi chiều");
-    else setGreeting("Chào buổi tối");
-  }, []);
+    useEffect(() => {
+        const user = getCurrentUser();
+        if (!user || !['manager', 'receptionist', 'staff'].includes(user.role.toLowerCase())) {
+            router.push('/login');
+        }
+    }, [router]);
 
-  return (
-    <AuthGuard requiredRole="staff">
-      <div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Bảng điều khiển</h1>
-          <p className="text-gray-600">
-            {greeting}, {user?.fullName || user?.username || "Nhân viên"}!
-          </p>
-          <p className="text-gray-500 text-sm mt-1">
-            Bạn đang đăng nhập với vai trò: <span className="font-medium text-green-600">Nhân viên</span>
-          </p>
+    return (
+        <div className="p-6">
+            <h1 className="text-2xl font-bold mb-4">Staff Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h2 className="text-lg font-semibold mb-2">Quản lý đặt phòng</h2>
+                    <p className="text-gray-600">Xử lý các yêu cầu đặt phòng</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h2 className="text-lg font-semibold mb-2">Quản lý khách hàng</h2>
+                    <p className="text-gray-600">Xem và cập nhật thông tin khách hàng</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow">
+                    <h2 className="text-lg font-semibold mb-2">Quản lý hóa đơn</h2>
+                    <p className="text-gray-600">Xem và xử lý hóa đơn</p>
+                </div>
+            </div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4">Quản lý Đặt phòng</h2>
-            <p className="text-gray-600 mb-4">Tạo đơn đặt phòng mới và quản lý</p>
-            <a href="/staff/booking" className="text-blue-600 hover:underline">Quản lý đặt phòng →</a>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4">Danh sách Phòng</h2>
-            <p className="text-gray-600 mb-4">Xem và kiểm tra tình trạng phòng</p>
-            <a href="/staff/rooms" className="text-blue-600 hover:underline">Xem phòng →</a>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4">Dịch vụ</h2>
-            <p className="text-gray-600 mb-4">Thêm dịch vụ cho khách hàng</p>
-            <a href="/staff/services" className="text-blue-600 hover:underline">Quản lý dịch vụ →</a>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4">Khách hàng</h2>
-            <p className="text-gray-600 mb-4">Quản lý thông tin khách hàng</p>
-            <a href="/staff/customers" className="text-blue-600 hover:underline">Quản lý khách hàng →</a>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4">Hóa đơn</h2>
-            <p className="text-gray-600 mb-4">Tạo và quản lý hóa đơn</p>
-            <a href="/staff/invoices" className="text-blue-600 hover:underline">Quản lý hóa đơn →</a>
-          </div>
-          
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4">Thông tin cá nhân</h2>
-            <p className="text-gray-600 mb-4">Quản lý thông tin tài khoản</p>
-            <a href="/staff/profile" className="text-blue-600 hover:underline">Xem thông tin →</a>
-          </div>
-        </div>
-      </div>
-    </AuthGuard>
-  )
+    );
 }

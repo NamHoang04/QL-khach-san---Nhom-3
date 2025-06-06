@@ -30,19 +30,19 @@ namespace HotelManagementAPI.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Ánh xạ tên bảng
-            modelBuilder.Entity<Admin>().ToTable("admins");
+            modelBuilder.Entity<Admin>().ToTable("Admins");
             modelBuilder.Entity<Role>().ToTable("roles");
             modelBuilder.Entity<Permission>().ToTable("permissions");
-            modelBuilder.Entity<AdminRole>().ToTable("admin_roles");
+            modelBuilder.Entity<AdminRole>().ToTable("Admin_roles");
             modelBuilder.Entity<RolePermission>().ToTable("role_permissions");
             modelBuilder.Entity<RoomType>().ToTable("room_types");
             modelBuilder.Entity<Room>().ToTable("rooms");
-            modelBuilder.Entity<Customer>().ToTable("customers");
+            modelBuilder.Entity<Customer>().ToTable("Customers");
             modelBuilder.Entity<Booking>().ToTable("bookings");
             modelBuilder.Entity<Invoice>().ToTable("invoices");
             modelBuilder.Entity<Service>().ToTable("services");
             modelBuilder.Entity<Event>().ToTable("events");
-            modelBuilder.Entity<Staff>().ToTable("staff");
+            modelBuilder.Entity<Staff>().ToTable("Staff");
             modelBuilder.Entity<BookingService>().ToTable("booking_services");
             modelBuilder.Entity<FavoriteRoom>().ToTable("favorite_rooms");
             modelBuilder.Entity<FavoriteService>().ToTable("favorite_services");

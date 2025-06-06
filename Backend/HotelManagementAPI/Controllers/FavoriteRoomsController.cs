@@ -12,7 +12,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "customer")]
+    [Authorize(Roles = "Customer")]
     public class FavoriteRoomsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -21,12 +21,12 @@ namespace HotelManagementAPI.Controllers
             _context = context;
         }
 
-        // GET: api/FavoriteRooms?customerId=1
+        // GET: api/FavoriteRooms?CustomerId=1
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<FavoriteRoomDTO>>> GetFavoriteRooms([FromQuery] int customerId)
+        public async Task<ActionResult<IEnumerable<FavoriteRoomDTO>>> GetFavoriteRooms([FromQuery] int CustomerId)
         {
             var favorites = await _context.FavoriteRooms
-                .Where(f => f.CustomerId == customerId)
+                .Where(f => f.CustomerId == CustomerId)
                 .Include(f => f.Room)
                 .ThenInclude(r => r.RoomType)
                 .ToListAsync();
@@ -64,11 +64,11 @@ namespace HotelManagementAPI.Controllers
             return Ok();
         }
 
-        // DELETE: api/FavoriteRooms?customerId=1&roomId=2
+        // DELETE: api/FavoriteRooms?CustomerId=1&roomId=2
         [HttpDelete]
-        public async Task<IActionResult> RemoveFavorite([FromQuery] int customerId, [FromQuery] int roomId)
+        public async Task<IActionResult> RemoveFavorite([FromQuery] int CustomerId, [FromQuery] int roomId)
         {
-            var favorite = await _context.FavoriteRooms.FindAsync(customerId, roomId);
+            var favorite = await _context.FavoriteRooms.FindAsync(CustomerId, roomId);
             if (favorite == null)
                 return NotFound();
             _context.FavoriteRooms.Remove(favorite);

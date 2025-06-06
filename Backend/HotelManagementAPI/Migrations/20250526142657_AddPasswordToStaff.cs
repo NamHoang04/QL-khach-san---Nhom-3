@@ -13,7 +13,7 @@ namespace HotelManagementAPI.Migrations
         {
             migrationBuilder.AddColumn<string>(
                 name: "password",
-                table: "staff",
+                table: "Staff",
                 type: "nvarchar(255)",
                 maxLength: 255,
                 nullable: false,
@@ -83,8 +83,8 @@ namespace HotelManagementAPI.Migrations
                 oldMaxLength: 10);
 
             migrationBuilder.AddColumn<string>(
-                name: "full_name",
-                table: "admins",
+                name: "UserName",
+                table: "Admins",
                 type: "nvarchar(100)",
                 maxLength: 100,
                 nullable: true);
@@ -122,16 +122,16 @@ namespace HotelManagementAPI.Migrations
                 name: "favorite_rooms",
                 columns: table => new
                 {
-                    customer_id = table.Column<int>(type: "int", nullable: false),
+                    Customer_id = table.Column<int>(type: "int", nullable: false),
                     room_id = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_favorite_rooms", x => new { x.customer_id, x.room_id });
+                    table.PrimaryKey("PK_favorite_rooms", x => new { x.Customer_id, x.room_id });
                     table.ForeignKey(
-                        name: "FK_favorite_rooms_customers_customer_id",
-                        column: x => x.customer_id,
-                        principalTable: "customers",
+                        name: "FK_favorite_rooms_Customers_Customer_id",
+                        column: x => x.Customer_id,
+                        principalTable: "Customers",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -146,16 +146,16 @@ namespace HotelManagementAPI.Migrations
                 name: "favorite_services",
                 columns: table => new
                 {
-                    customer_id = table.Column<int>(type: "int", nullable: false),
+                    Customer_id = table.Column<int>(type: "int", nullable: false),
                     service_id = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_favorite_services", x => new { x.customer_id, x.service_id });
+                    table.PrimaryKey("PK_favorite_services", x => new { x.Customer_id, x.service_id });
                     table.ForeignKey(
-                        name: "FK_favorite_services_customers_customer_id",
-                        column: x => x.customer_id,
-                        principalTable: "customers",
+                        name: "FK_favorite_services_Customers_Customer_id",
+                        column: x => x.Customer_id,
+                        principalTable: "Customers",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -201,7 +201,7 @@ namespace HotelManagementAPI.Migrations
 
             migrationBuilder.DropColumn(
                 name: "password",
-                table: "staff");
+                table: "Staff");
 
             migrationBuilder.DropColumn(
                 name: "category",
@@ -228,8 +228,8 @@ namespace HotelManagementAPI.Migrations
                 table: "rooms");
 
             migrationBuilder.DropColumn(
-                name: "full_name",
-                table: "admins");
+                name: "UserName",
+                table: "Admins");
 
             migrationBuilder.AlterColumn<DateTime>(
                 name: "check_out",

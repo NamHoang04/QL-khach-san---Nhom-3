@@ -5,7 +5,7 @@ namespace HotelManagementAPI.Models
 {
     public class FavoriteService
     {
-        [Column("customer_id", Order = 0)]
+        [Column("Customer_id", Order = 0)]
         public int CustomerId { get; set; }
         [Column("service_id", Order = 1)]
         public int ServiceId { get; set; }

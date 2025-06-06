@@ -28,7 +28,7 @@ namespace HotelManagementAPI.Models
         /// ID của khách hàng liên quan đến hóa đơn (liên kết với bảng Customer).
         /// </summary>
         [Required]
-        [Column("customer_id")]
+        [Column("Customer_id")]
         public int CustomerId { get; set; }
         
         /// <summary>
