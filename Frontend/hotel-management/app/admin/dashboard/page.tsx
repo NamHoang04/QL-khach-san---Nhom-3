@@ -1,62 +1,94 @@
 "use client"
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { getCurrentUser, isAuthenticated } from '@/lib/auth-service';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 export default function AdminDashboard() {
-    const router = useRouter();
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                // Kiểm tra token trước
-                if (!isAuthenticated()) {
-                    router.push('/login');
-                    return;
-                }
-
-                // Sau đó mới kiểm tra user
-                const user = getCurrentUser();
-                if (!user || user.role.toLowerCase() !== 'admin') {
-                    router.push('/login');
-                    return;
-                }
-
-                setIsLoading(false);
-            } catch (error) {
-                console.error('Authentication error:', error);
-                router.push('/login');
-            }
-        };
-
-        checkAuth();
-    }, []); // Empty dependency array means this only runs once on mount
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-            </div>
-        );
-    }
-
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h2 className="text-lg font-semibold mb-2">Quản lý phòng</h2>
-                    <p className="text-gray-600">Quản lý thông tin phòng và loại phòng</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h2 className="text-lg font-semibold mb-2">Quản lý đặt phòng</h2>
-                    <p className="text-gray-600">Xem và xử lý các yêu cầu đặt phòng</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h2 className="text-lg font-semibold mb-2">Quản lý khách hàng</h2>
-                    <p className="text-gray-600">Xem thông tin và lịch sử khách hàng</p>
+        <div className="min-h-screen bg-gray-100">
+            <div className="py-8 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                        Bảng điều khiển
+                    </h1>
+                    <p className="text-gray-600 mb-8">
+                        Chào buổi tối, admin! <br />
+                        Bạn đang đăng nhập với vai trò: <span className="text-green-600 font-medium">Quản trị viên</span>
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Quản lý Nhân viên */}
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h2 className="text-xl font-semibold mb-4">Quản lý Nhân viên</h2>
+                            <p className="text-gray-600 mb-4">Thêm, sửa, xóa và quản lý nhân viên</p>
+                            <Link 
+                                href="/admin/staff"
+                                className="text-blue-600 hover:text-blue-800 flex items-center"
+                            >
+                                Quản lý nhân viên <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </div>
+
+                        {/* Quản lý Phòng */}
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h2 className="text-xl font-semibold mb-4">Danh sách Phòng</h2>
+                            <p className="text-gray-600 mb-4">Xem và quản lý danh sách phòng</p>
+                            <Link 
+                                href="/admin/rooms"
+                                className="text-blue-600 hover:text-blue-800 flex items-center"
+                            >
+                                Xem phòng <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </div>
+
+                        {/* Quản lý Dịch vụ */}
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h2 className="text-xl font-semibold mb-4">Dịch vụ</h2>
+                            <p className="text-gray-600 mb-4">Quản lý các dịch vụ của khách sạn</p>
+                            <Link 
+                                href="/admin/services"
+                                className="text-blue-600 hover:text-blue-800 flex items-center"
+                            >
+                                Quản lý dịch vụ <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </div>
+
+                        {/* Quản lý Khách hàng */}
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h2 className="text-xl font-semibold mb-4">Khách hàng</h2>
+                            <p className="text-gray-600 mb-4">Quản lý thông tin khách hàng</p>
+                            <Link 
+                                href="/admin/customers"
+                                className="text-blue-600 hover:text-blue-800 flex items-center"
+                            >
+                                Quản lý khách hàng <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </div>
+
+                        {/* Quản lý Hóa đơn */}
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h2 className="text-xl font-semibold mb-4">Hóa đơn</h2>
+                            <p className="text-gray-600 mb-4">Quản lý và xem báo cáo hóa đơn</p>
+                            <Link 
+                                href="/admin/invoices"
+                                className="text-blue-600 hover:text-blue-800 flex items-center"
+                            >
+                                Quản lý hóa đơn <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </div>
+
+                        {/* Thông tin cá nhân */}
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h2 className="text-xl font-semibold mb-4">Thông tin cá nhân</h2>
+                            <p className="text-gray-600 mb-4">Quản lý thông tin tài khoản</p>
+                            <Link 
+                                href="/admin/profile"
+                                className="text-blue-600 hover:text-blue-800 flex items-center"
+                            >
+                                Xem thông tin <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

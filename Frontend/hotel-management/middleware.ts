@@ -16,13 +16,18 @@ const protectedPaths = {
 function getRoleFromToken(token: string): string | null {
   try {
     const decoded = jwtDecode(token);
+    console.log('Decoded token:', decoded);
+    
     // Kiểm tra các định dạng role khác nhau trong token
     const role = (decoded as any).role || 
                 (decoded as any).Role || 
                 (decoded as any).userRole || 
                 (decoded as any).UserRole ||
-                (decoded as any)['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-    return role || null;
+                (decoded as any)['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+                (decoded as any).roles?.[0];
+                
+    console.log('Extracted role:', role);
+    return role || null;  // Return the original role value without toLowerCase()
   } catch (error) {
     console.error('Error decoding token:', error);
     return null;
@@ -36,50 +41,21 @@ function isAdmin(role: string): boolean {
 }
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const pathname = request.nextUrl.pathname;
   
+  // Bỏ qua các request không cần xác thực
+  if (
+    pathname.startsWith('/_next') || 
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/static') ||
+    pathname.startsWith('/images') ||
+    pathname === '/favicon.ico'
+  ) {
+    return NextResponse.next();
+  }
+
   // Cho phép truy cập các đường dẫn công khai
-  if (publicPaths.includes(pathname)) {
-    // Nếu đã đăng nhập và truy cập trang login, chuyển hướng đến dashboard tương ứng
-    if (pathname === '/login') {
-      const token = request.cookies.get('token')?.value;
-      if (token) {
-        try {
-          const role = getRoleFromToken(token);
-          if (role) {
-            // Kiểm tra token còn hạn không
-            const decoded = jwtDecode(token);
-            const exp = (decoded as any).exp;
-            const currentTime = Math.floor(Date.now() / 1000);
-            
-            if (exp && exp > currentTime) {
-              // Ưu tiên kiểm tra quyền admin trước
-              if (isAdmin(role)) {
-                return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-              }
-              
-              // Sau đó kiểm tra các quyền khác
-              const roleLower = role.toLowerCase();
-              if (['manager', 'receptionist', 'staff'].includes(roleLower)) {
-                return NextResponse.redirect(new URL('/staff/dashboard', request.url));
-              } else if (roleLower === 'customer') {
-                return NextResponse.redirect(new URL('/customer/dashboard', request.url));
-              }
-            } else {
-              // Token hết hạn, xóa và chuyển về login
-              const response = NextResponse.redirect(new URL('/login', request.url));
-              response.cookies.delete('token');
-              return response;
-            }
-          }
-        } catch (error) {
-          // Nếu có lỗi khi xử lý token, chuyển về trang login
-          const response = NextResponse.redirect(new URL('/login', request.url));
-          response.cookies.delete('token');
-          return response;
-        }
-      }
-    }
+  if (publicPaths.some(path => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
@@ -87,12 +63,16 @@ export function middleware(request: NextRequest) {
     // Kiểm tra token từ cookies
     const token = request.cookies.get('token')?.value;
     if (!token) {
+      console.log('No token found, redirecting to login');
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
     // Lấy role từ token
     const role = getRoleFromToken(token);
+    console.log('Extracted role for protected path:', role);
+    
     if (!role) {
+      console.log('No role found in token');
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('token');
       return response;
@@ -103,7 +83,8 @@ export function middleware(request: NextRequest) {
     const exp = (decoded as any).exp;
     const currentTime = Math.floor(Date.now() / 1000);
     
-    if (!exp || exp <= currentTime) {
+    if (exp && exp <= currentTime) {
+      console.log('Token expired');
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('token');
       return response;
@@ -111,10 +92,12 @@ export function middleware(request: NextRequest) {
 
     // Kiểm tra quyền truy cập dựa trên role
     const roleLower = role.toLowerCase();
+    console.log('Checking access for role:', roleLower, 'on path:', pathname);
     
     // Kiểm tra quyền admin
     if (pathname.startsWith('/admin')) {
-      if (!isAdmin(role)) {
+      if (!['admin', 'administrator'].includes(roleLower)) {
+        console.log('Access denied: Not an admin');
         return NextResponse.redirect(new URL('/login', request.url));
       }
     }
@@ -122,6 +105,7 @@ export function middleware(request: NextRequest) {
     // Kiểm tra quyền staff
     if (pathname.startsWith('/staff')) {
       if (!['staff', 'manager', 'receptionist'].includes(roleLower)) {
+        console.log('Access denied: Not a staff member');
         return NextResponse.redirect(new URL('/login', request.url));
       }
     }
@@ -129,6 +113,7 @@ export function middleware(request: NextRequest) {
     // Kiểm tra quyền customer
     if (pathname.startsWith('/customer')) {
       if (roleLower !== 'customer') {
+        console.log('Access denied: Not a customer');
         return NextResponse.redirect(new URL('/login', request.url));
       }
     }

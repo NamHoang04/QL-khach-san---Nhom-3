@@ -33,6 +33,7 @@ export function SidebarBase({ menuItems, children }: SidebarProps) {
   // Xử lý sự kiện đăng xuất
   const handleLogout = () => {
     logout()
+    router.push('/login')
   }
 
   return (

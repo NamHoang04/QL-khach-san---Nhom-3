@@ -1,43 +1,57 @@
-import { fetchData, postData, putData, deleteData } from './api';
+import { api } from './api';
 
-// Định nghĩa interface cho dữ liệu đặt phòng
-export interface BookingData {
-  id?: string
-  customerName: string
-  phone: string
-  email?: string
-  checkInDate: string
-  checkOutDate: string
-  advancePayment: number
-  agreedPrice: number
-  note: string
-  roomType: string
-  status: "pending" | "confirmed" | "cancelled" | "completed"
-  createdAt?: string
-  updatedAt?: string
+// Interface này khớp với BookingDTO của backend
+export interface Booking {
+    id: number;
+    bookingCode: string;
+    bookingDate: string;
+    checkInDate: string;
+    checkOutDate: string;
+    numberOfAdults: number;
+    numberOfChildren: number;
+    totalPrice: number;
+    status: string;
+    note?: string;
+    customerId: string;
+    customerName: string; // Thêm từ join
+    staffId?: string;
+    staffName?: string; // Thêm từ join
+    roomName: string; // Thêm từ join
 }
 
-// Hàm lấy danh sách đặt phòng
-export async function getBookings(): Promise<BookingData[]> {
-  return fetchData('/bookings');
+// DTO cho việc tạo và cập nhật
+export interface BookingUpsertDTO {
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfAdults: number;
+  numberOfChildren: number;
+  totalPrice: number;
+  status: string;
+  note?: string;
+  customerId: string;
+  staffId?: string;
+  roomId: number; // Cần roomId khi tạo
 }
 
-// Hàm lấy chi tiết đặt phòng theo ID
-export async function getBookingById(id: string): Promise<BookingData> {
-  return fetchData(`/bookings/${id}`);
+export async function getBookings(): Promise<Booking[]> {
+  const response = await api.get<Booking[]>('/Bookings');
+  return response.data;
 }
 
-// Hàm tạo đặt phòng mới
-export async function createBooking(booking: Omit<BookingData, 'id' | 'createdAt' | 'updatedAt'>): Promise<BookingData> {
-  return postData('/bookings', booking);
+export async function getBookingById(id: number): Promise<Booking> {
+  const response = await api.get<Booking>(`/Bookings/${id}`);
+  return response.data;
 }
 
-// Hàm cập nhật đặt phòng
-export async function updateBooking(id: string, bookingData: Partial<BookingData>): Promise<BookingData> {
-  return putData(`/bookings/${id}`, bookingData);
+export async function createBooking(data: BookingUpsertDTO): Promise<Booking> {
+  const response = await api.post<Booking>('/Bookings', data);
+  return response.data;
 }
 
-// Hàm xóa đặt phòng
-export async function deleteBooking(id: string): Promise<void> {
-  return deleteData(`/bookings/${id}`);
+export async function updateBooking(id: number, data: Partial<BookingUpsertDTO>): Promise<void> {
+  await api.put(`/Bookings/${id}`, data);
+}
+
+export async function deleteBooking(id: number): Promise<void> {
+  await api.delete(`/Bookings/${id}`);
 } 

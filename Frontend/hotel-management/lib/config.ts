@@ -2,8 +2,16 @@
 
 // API Configuration
 export const API_CONFIG = {
-  // Thay đổi baseUrl để phù hợp với địa chỉ backend
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
+  // Sử dụng relative URL để Next.js có thể proxy requests
+  baseUrl: '/api',
+  endpoints: {
+    login: '/Auth/login',
+    logout: '/Auth/logout',
+  },
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
   timeout: 10000,
   tokenKey: 'hotel_management_auth_token'
 };
@@ -11,7 +19,9 @@ export const API_CONFIG = {
 // Authentication Configuration
 export const AUTH_CONFIG = {
   // Cookie/LocalStorage key for auth token
-  tokenKey: 'hotel_management_auth_token',
+  tokenKey: 'token',
+  userKey: 'user',
+  roleKey: 'userRole',
   
   // Token expiry time in minutes
   tokenExpiryMinutes: 60,
@@ -36,4 +46,13 @@ export const APP_CONFIG = {
   
   // Number of items per page for pagination
   pageSize: 10,
+};
+
+// Route Configuration
+export const ROUTE_CONFIG: Record<string, string> = {
+  admin: '/admin/dashboard',
+  administrator: '/admin/dashboard',
+  staff: '/staff/dashboard',
+  customer: '/customer/dashboard',
+  login: '/login'
 };

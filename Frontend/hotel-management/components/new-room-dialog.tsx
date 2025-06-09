@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,62 +8,69 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { XCircle } from "lucide-react"
+import { api } from "@/lib/api"
 
-interface RoomData {
-  id?: string
+// Kiểu dữ liệu cho một loại phòng
+interface RoomType {
+  id: number;
+  name: string;
+  price: number;
+}
+
+// Kiểu dữ liệu cho DTO tạo phòng, dùng cho cả form và onSave
+interface RoomUpsertDTO {
   roomNumber: string
-  floor: string
-  roomType: string
-  price: string
-  status: string
+  floor: number
+  roomTypeId: number
+  price: number
+  status: "Available" | "Occupied" | "Maintenance"
   description?: string
 }
 
 interface NewRoomDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (room: RoomData) => void
+  onSave: (room: RoomUpsertDTO) => void
 }
 
+const initialFormState: Partial<RoomUpsertDTO> = {
+  floor: 1,
+  status: "Available",
+  price: 0
+};
+
 export function NewRoomDialog({ open, onOpenChange, onSave }: NewRoomDialogProps) {
-  const [room, setRoom] = useState<RoomData>({
-    roomNumber: "",
-    floor: "1",
-    roomType: "",
-    price: "",
-    status: "available",
-    description: ""
-  })
-  
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [room, setRoom] = useState<Partial<RoomUpsertDTO>>(initialFormState)
   const [errors, setErrors] = useState({
     roomNumber: false,
-    roomType: false,
-    price: false,
-    priceInvalid: false
+    roomTypeId: false,
   })
 
-  const handleChange = (field: keyof RoomData, value: string) => {
-    // Special handling for price field
-    if (field === 'price') {
-      // Only allow numbers and commas
-      if (value && !/^[0-9,]+$/.test(value)) {
-        setErrors(prev => ({ ...prev, priceInvalid: true }))
-        
-        toast.error(
-          <div className="flex items-center gap-2">
-            <XCircle className="h-5 w-5 text-red-500" />
-            <span>Giá phòng chỉ được nhập số!</span>
-          </div>
-        )
-        return
-      } else {
-        setErrors(prev => ({ ...prev, priceInvalid: false }))
-      }
+  // Lấy danh sách loại phòng từ API
+  useEffect(() => {
+    if (open) {
+      const fetchRoomTypes = async () => {
+        try {
+          const response = await api.get<RoomType[]>('/RoomTypes');
+          setRoomTypes(response.data);
+        } catch (error) {
+          console.error("Failed to fetch room types:", error);
+          toast.error("Lỗi kết nối: Không thể tải danh sách loại phòng.");
+        }
+      };
+      fetchRoomTypes();
     }
-    
+  }, [open]);
+
+  const handleChange = (field: keyof RoomUpsertDTO, value: string | number) => {
     setRoom((prev) => ({ ...prev, [field]: value }))
-    
-    // Clear error when field is filled
+    if (field === 'roomTypeId') {
+        const selectedType = roomTypes.find(rt => rt.id === value);
+        if (selectedType) {
+            setRoom(prev => ({ ...prev, price: selectedType.price }));
+        }
+    }
     if (field in errors) {
       setErrors(prev => ({ ...prev, [field]: false }))
     }
@@ -71,73 +78,26 @@ export function NewRoomDialog({ open, onOpenChange, onSave }: NewRoomDialogProps
   
   const validateForm = () => {
     const newErrors = {
-      roomNumber: !room.roomNumber.trim(),
-      roomType: !room.roomType.trim(),
-      price: !room.price.trim(),
-      priceInvalid: room.price.trim() !== "" && !/^[0-9,]+$/.test(room.price)
+      roomNumber: !room.roomNumber?.trim(),
+      roomTypeId: !room.roomTypeId,
     }
-    
     setErrors(newErrors)
     return !Object.values(newErrors).some(error => error)
   }
 
   const handleSave = () => {
-    if (validateForm()) {
-      onSave(room)
+    if (validateForm() && room.roomNumber && room.roomTypeId && room.floor && room.price && room.status) {
+      onSave(room as RoomUpsertDTO)
       onOpenChange(false)
-      
-      // Reset form
-      setRoom({
-        roomNumber: "",
-        floor: "1",
-        roomType: "",
-        price: "",
-        status: "available",
-        description: ""
-      })
-      
-      setErrors({
-        roomNumber: false,
-        roomType: false,
-        price: false,
-        priceInvalid: false
-      })
+      setRoom(initialFormState)
+      setErrors({ roomNumber: false, roomTypeId: false })
     } else {
-      // Show validation error toast
       toast.error(
         <div className="flex items-center gap-2">
           <XCircle className="h-5 w-5 text-red-500" />
           <span>Vui lòng điền đầy đủ thông tin bắt buộc!</span>
         </div>
       )
-    }
-  }
-
-  // Format the price with proper thousand separators if needed
-  const formatPrice = (value: string) => {
-    if (!value) return value
-    
-    // Remove non-numeric characters except commas
-    const numericValue = value.replace(/[^0-9,]/g, '')
-    
-    // Remove existing commas
-    const withoutCommas = numericValue.replace(/,/g, '')
-    
-    // Add commas for thousands
-    let formattedValue = ''
-    for (let i = 0; i < withoutCommas.length; i++) {
-      if (i > 0 && (withoutCommas.length - i) % 3 === 0) {
-        formattedValue += ','
-      }
-      formattedValue += withoutCommas[i]
-    }
-    
-    return formattedValue
-  }
-
-  const handlePriceBlur = () => {
-    if (room.price) {
-      setRoom(prev => ({ ...prev, price: formatPrice(room.price) }))
     }
   }
 
@@ -158,7 +118,7 @@ export function NewRoomDialog({ open, onOpenChange, onSave }: NewRoomDialogProps
                   </Label>
                   <Input
                     id="roomNumber"
-                    value={room.roomNumber}
+                    value={room.roomNumber || ""}
                     onChange={(e) => handleChange("roomNumber", e.target.value)}
                     className={`border-b ${errors.roomNumber ? 'border-red-500' : 'border-gray-400'} bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0`}
                     placeholder="Nhập số phòng..."
@@ -176,105 +136,85 @@ export function NewRoomDialog({ open, onOpenChange, onSave }: NewRoomDialogProps
                   <Input
                     id="floor"
                     type="number"
-                    value={room.floor}
-                    onChange={(e) => handleChange("floor", e.target.value)}
+                    value={room.floor || 1}
+                    onChange={(e) => handleChange("floor", parseInt(e.target.value, 10))}
                     className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0"
                     placeholder="Nhập tầng..."
                   />
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 gap-2">
+                <Label htmlFor="roomTypeId" className="text-base text-gray-700">
+                  Loại phòng <span className="text-red-500">*</span>
+                </Label>
+                <Select value={room.roomTypeId?.toString()} onValueChange={(value) => handleChange("roomTypeId", parseInt(value, 10))}>
+                  <SelectTrigger 
+                    className={`border-b ${errors.roomTypeId ? 'border-red-500' : 'border-gray-400'} bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0`}
+                  >
+                    <SelectValue placeholder="Chọn loại phòng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roomTypes.map(type => (
+                      <SelectItem key={type.id} value={type.id.toString()}>{type.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.roomTypeId && (
+                  <p className="text-red-500 text-xs mt-1">Loại phòng là bắt buộc</p>
+                )}
+              </div>
+              
               <div className="grid grid-cols-2 gap-6">
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="roomType" className="text-base text-gray-700">
-                    Loại phòng <span className="text-red-500">*</span>
-                  </Label>
-                  <Select value={room.roomType} onValueChange={(value) => handleChange("roomType", value)}>
-                    <SelectTrigger 
-                      className={`border-b ${errors.roomType ? 'border-red-500' : 'border-gray-400'} bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0`}
-                    >
-                      <SelectValue placeholder="Chọn loại phòng" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="standard">Phòng Standard</SelectItem>
-                      <SelectItem value="deluxe">Phòng Deluxe</SelectItem>
-                      <SelectItem value="suite">Phòng Suite</SelectItem>
-                      <SelectItem value="family">Phòng Family</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.roomType && (
-                    <p className="text-red-500 text-xs mt-1">Loại phòng là bắt buộc</p>
-                  )}
-                </div>
-
                 <div className="grid grid-cols-1 gap-2">
                   <Label htmlFor="price" className="text-base text-gray-700">
-                    Giá (VNĐ/đêm) <span className="text-red-500">*</span>
+                    Giá (VNĐ/đêm)
                   </Label>
                   <Input
-                    id="price"
-                    value={room.price}
-                    onChange={(e) => handleChange("price", e.target.value)}
-                    onBlur={handlePriceBlur}
-                    className={`border-b ${errors.price || errors.priceInvalid ? 'border-red-500' : 'border-gray-400'} bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0`}
-                    placeholder="Nhập giá phòng..."
-                    required
+                      id="price"
+                      type="number"
+                      value={room.price || 0}
+                      onChange={(e) => handleChange("price", parseFloat(e.target.value))}
+                      className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0"
+                      placeholder="Giá phòng..."
                   />
-                  {errors.price && (
-                    <p className="text-red-500 text-xs mt-1">Giá phòng là bắt buộc</p>
-                  )}
-                  {errors.priceInvalid && (
-                    <p className="text-red-500 text-xs mt-1">Giá phòng chỉ được nhập số</p>
-                  )}
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
                 <div className="grid grid-cols-1 gap-2">
                   <Label htmlFor="status" className="text-base text-gray-700">
                     Trạng thái
                   </Label>
-                  <Select value={room.status} onValueChange={(value) => handleChange("status", value)}>
+                  <Select value={room.status} onValueChange={(value: "Available" | "Occupied" | "Maintenance") => handleChange("status", value)}>
                     <SelectTrigger className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0">
                       <SelectValue placeholder="Chọn trạng thái" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="available">Sẵn sàng</SelectItem>
-                      <SelectItem value="occupied">Đang sử dụng</SelectItem>
-                      <SelectItem value="maintenance">Bảo trì</SelectItem>
+                      <SelectItem value="Available">Sẵn sàng</SelectItem>
+                      <SelectItem value="Occupied">Đang sử dụng</SelectItem>
+                      <SelectItem value="Maintenance">Bảo trì</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-2">
-                <Label htmlFor="description" className="text-base text-gray-700">
-                  Mô tả
-                </Label>
+                <Label htmlFor="description" className="text-base text-gray-700">Mô tả</Label>
                 <Input
                   id="description"
                   value={room.description || ""}
                   onChange={(e) => handleChange("description", e.target.value)}
                   className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0"
-                  placeholder="Nhập mô tả phòng..."
+                  placeholder="Thêm mô tả (nếu có)..."
                 />
               </div>
+            </div>
 
-              <div className="flex justify-end space-x-3 mt-8">
-                <Button 
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  className="border-gray-300 text-gray-700 hover:bg-gray-100"
-                >
-                  Hủy bỏ
-                </Button>
-                <Button 
-                  onClick={handleSave}
-                  className="bg-[#369eff] hover:bg-blue-600 text-white"
-                >
-                  Lưu phòng
-                </Button>
-              </div>
+            <div className="mt-8 flex justify-end gap-4">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Hủy
+              </Button>
+              <Button onClick={handleSave} className="bg-[#369eff] hover:bg-[#2a8ce8] text-white">
+                Lưu
+              </Button>
             </div>
           </div>
         </div>

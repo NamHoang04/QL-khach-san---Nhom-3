@@ -1,15 +1,20 @@
-import { Metadata } from "next"
-import { StaffAuthCheck } from "@/components/staff/auth-check"
+"use client"
 
-export const metadata: Metadata = {
-  title: "Staff Panel | Hotel Management",
-  description: "Staff panel for the hotel management system",
-}
+import { StaffSidebar } from "@/components/staff/sidebar"
+import { SidebarProvider } from "@/components/sidebar-provider"
 
 export default function StaffLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <StaffAuthCheck>{children}</StaffAuthCheck>
+  return (
+    <SidebarProvider>
+      <StaffSidebar>
+        <main className="p-6">
+          {children}
+        </main>
+      </StaffSidebar>
+    </SidebarProvider>
+  )
 } 

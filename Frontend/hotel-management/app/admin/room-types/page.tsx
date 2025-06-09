@@ -1,218 +1,195 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { AddRoomTypeDialog } from "@/components/add-room-type-dialog"
-import { EditRoomTypeDialog } from "@/components/edit-room-type-dialog"
+import { useState, useEffect, useCallback } from "react"
+import { Search, Edit, Trash2, PlusCircle } from "lucide-react"
 import { toast } from "sonner"
-import { CheckCircle } from "lucide-react"
-
-// Define room type interface
-interface RoomType {
-  id: string;
-  name: string;
-  pricePerNight: number;
-  description: string;
-  amenities: string[];
-}
-
-// Mocked room type data
-const roomTypesData: RoomType[] = [
-  {
-    id: "rt1",
-    name: "Phòng Standard",
-    pricePerNight: 750000,
-    description: "Phòng tiêu chuẩn với đầy đủ tiện nghi cơ bản, thích hợp cho 2 người.",
-    amenities: ["Wifi miễn phí", "TV"]
-  },
-  {
-    id: "rt2",
-    name: "Phòng Deluxe",
-    pricePerNight: 1200000,
-    description: "Phòng cao cấp với không gian rộng và tầm nhìn đẹp, phù hợp cho gia đình nhỏ.",
-    amenities: ["Wifi miễn phí", "TV", "Minibar"]
-  },
-  {
-    id: "rt3",
-    name: "Phòng Suite",
-    pricePerNight: 2500000,
-    description: "Phòng Suite sang trọng với phòng khách riêng biệt, tầm nhìn panorama.",
-    amenities: ["Bồn tắm spa", "Bữa sáng miễn phí", "Wifi miễn phí", "TV", "Minibar"]
-  },
-]
+import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
+import { getRoomTypes, deleteRoomType, createRoomType, updateRoomType, RoomTypeData, RoomTypeUpsertDTO } from "@/lib/room-type-service"
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
+import { RoomTypeDialog } from "@/components/room-type-dialog"
 
 export default function AdminRoomTypesPage() {
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>(roomTypesData)
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedRoomType, setSelectedRoomType] = useState<RoomType | null>(null)
-  
-  const handleDelete = (roomTypeId: string) => {
-    setRoomTypes(roomTypes.filter(rt => rt.id !== roomTypeId))
-    setIsDeleteDialogOpen(false)
-    
-    // Show success toast with check icon
-    toast.success(
-      <div className="flex items-center gap-2">
-        <CheckCircle className="h-5 w-5 text-green-500" />
-        <span>Loại phòng đã được xóa thành công!</span>
-      </div>
-    )
+  const [selectedRoomType, setSelectedRoomType] = useState<RoomTypeData | null>(null)
+  const [roomTypes, setRoomTypes] = useState<RoomTypeData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchRoomTypes = useCallback(async () => {
+    try {
+      setLoading(true)
+      const data = await getRoomTypes()
+      setRoomTypes(data)
+      setError(null)
+    } catch (err: any) {
+      console.error("Failed to fetch room types:", err)
+      const errorMessage = err.message || "Lỗi kết nối đến máy chủ."
+      setError(errorMessage)
+      toast.error(`Không thể tải danh sách loại phòng: ${errorMessage}`)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchRoomTypes()
+  }, [fetchRoomTypes])
+
+  const handleSave = async (data: RoomTypeUpsertDTO) => {
+    try {
+      if (selectedRoomType) {
+        // Update
+        await updateRoomType(selectedRoomType.id, data)
+        toast.success(`Đã cập nhật loại phòng "${data.name}".`)
+      } else {
+        // Create
+        await createRoomType(data)
+        toast.success(`Đã tạo loại phòng mới "${data.name}".`)
+      }
+      fetchRoomTypes()
+      setIsDialogOpen(false)
+    } catch (err: any) {
+      console.error("Failed to save room type:", err)
+      const errorMessage = err.response?.data?.message || err.message || "Đã có lỗi xảy ra."
+      toast.error(`Lưu thất bại: ${errorMessage}`)
+    }
   }
-  
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
+
+  const handleDelete = async () => {
+    if (!selectedRoomType) return
+    try {
+      await deleteRoomType(selectedRoomType.id)
+      toast.success(`Đã xóa loại phòng "${selectedRoomType.name}".`)
+      fetchRoomTypes()
+    } catch (err: any) {
+      console.error("Failed to delete room type:", err)
+      const errorMessage = err.response?.data?.message || err.message || "Đã có lỗi xảy ra."
+      toast.error(`Xóa loại phòng thất bại: ${errorMessage}`)
+    } finally {
+      setIsDeleteDialogOpen(false)
+    }
   }
-  
-  const openDeleteDialog = (roomType: RoomType) => {
+
+  const openDialog = (roomType: RoomTypeData | null = null) => {
+    setSelectedRoomType(roomType)
+    setIsDialogOpen(true)
+  }
+
+  const openDeleteDialog = (roomType: RoomTypeData) => {
     setSelectedRoomType(roomType)
     setIsDeleteDialogOpen(true)
   }
   
-  const openEditDialog = (roomType: RoomType) => {
-    setSelectedRoomType(roomType)
-    setIsEditDialogOpen(true)
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN').format(amount);
   }
-  
-  const handleAddRoomType = (newRoomType: RoomType) => {
-    setRoomTypes(prev => [...prev, newRoomType])
-    
-    // Show success toast with check icon
-    toast.success(
-      <div className="flex items-center gap-2">
-        <CheckCircle className="h-5 w-5 text-green-500" />
-        <span>Đã thêm loại phòng mới thành công!</span>
-      </div>
-    )
+
+  const filteredRoomTypes = roomTypes.filter(rt =>
+    rt.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><Spinner size="large" /></div>
   }
-  
-  const handleEditRoomType = (editedRoomType: RoomType) => {
-    setRoomTypes(prev => 
-      prev.map(roomType => 
-        roomType.id === editedRoomType.id ? editedRoomType : roomType
-      )
-    )
-    
-    // Show success toast with check icon
-    toast.success(
-      <div className="flex items-center gap-2">
-        <CheckCircle className="h-5 w-5 text-green-500" />
-        <span>Đã cập nhật loại phòng thành công!</span>
-      </div>
-    )
+
+  if (error) {
+    return <div className="text-center text-red-500 mt-10"><p>Đã xảy ra lỗi: {error}</p></div>
   }
 
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Quản lý Loại Phòng</h1>
-        <p className="text-gray-600">Xem và quản lý các loại phòng khách sạn</p>
+        <p className="text-gray-600">Thêm, sửa, xóa và quản lý các loại phòng của khách sạn</p>
       </div>
-      
-      <div className="mb-8">
-        <Button 
-          className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
-          onClick={() => setIsAddDialogOpen(true)}
-        >
-          Thêm loại phòng mới
-        </Button>
-      </div>
-      
+
       <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Tìm kiếm loại phòng..."
+              className="pl-10 pr-4 py-2 border rounded-lg w-full md:w-80"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+          </div>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+            onClick={() => openDialog()}
+          >
+            <PlusCircle size={18} />
+            Thêm loại phòng
+          </Button>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tên loại phòng
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Giá mỗi đêm
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tiện nghi
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Thao tác
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên loại phòng</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá (VNĐ/đêm)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số khách tối đa</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {roomTypes.map((roomType) => (
-                <tr key={roomType.id}>
+              {filteredRoomTypes.map((rt) => (
+                <tr key={rt.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{roomType.name}</div>
+                    <div className="text-sm font-medium text-gray-900">{rt.name}</div>
+                    <div className="text-sm text-gray-500">{rt.description?.substring(0, 50)}...</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{formatPrice(roomType.pricePerNight)}</div>
+                    <div className="text-sm text-gray-900">{formatCurrency(rt.price)}</div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {roomType.amenities.slice(0, 3).join(", ")}
-                      {roomType.amenities.length > 3 && "..."}
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{rt.maxGuests}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Button 
-                      variant="ghost"
-                      className="text-blue-600 hover:text-blue-900 mr-3"
-                      onClick={() => openEditDialog(roomType)}
-                    >
-                      Chỉnh sửa
+                    <Button variant="ghost" className="text-blue-600 hover:text-blue-900" onClick={() => openDialog(rt)}>
+                      <Edit size={16} />
                     </Button>
-                    <Button 
-                      variant="ghost"
-                      className="text-red-600 hover:text-red-900"
-                      onClick={() => openDeleteDialog(roomType)}
-                    >
-                      Xóa
+                    <Button variant="ghost" className="text-red-600 hover:text-red-900" onClick={() => openDeleteDialog(rt)}>
+                      <Trash2 size={16} />
                     </Button>
                   </td>
                 </tr>
               ))}
+              {filteredRoomTypes.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                    Không tìm thấy loại phòng nào.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
-      
+
+      {/* Dialog for Add/Edit Room Type */}
+      {isDialogOpen && (
+        <RoomTypeDialog
+          isOpen={isDialogOpen}
+          onClose={() => setIsDialogOpen(false)}
+          onSave={handleSave}
+          roomType={selectedRoomType}
+        />
+      )}
+
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa loại phòng "{selectedRoomType?.name}" không? Thao tác này không thể hoàn tác.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => selectedRoomType && handleDelete(selectedRoomType.id)}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              Xóa
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Add Room Type Dialog */}
-      <AddRoomTypeDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onSave={handleAddRoomType}
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleDelete}
+        title="Xác nhận xóa loại phòng"
+        description={`Bạn có chắc chắn muốn xóa loại phòng "${selectedRoomType?.name}" không? Các phòng đang sử dụng loại này sẽ không bị ảnh hưởng nhưng bạn không thể khôi phục loại phòng.`}
       />
-      
-      {/* Edit Room Type Dialog */}
-      <EditRoomTypeDialog
-        roomType={selectedRoomType}
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        onSave={handleEditRoomType}
-      />
-      
     </div>
   )
 } 

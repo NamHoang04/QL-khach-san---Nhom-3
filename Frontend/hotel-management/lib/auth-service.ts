@@ -8,6 +8,7 @@ import type { AxiosResponse } from 'axios/index';
 export interface LoginCredentials {
   username: string;
   password: string;
+  userType?: string;
 }
 
 export interface User {
@@ -46,13 +47,13 @@ interface LoginResponse {
   errors: any;
 }
 
-export const login = async (username: string, password: string): Promise<LoginResponse> => {
+export const login = async (username: string, password: string, userType?: string): Promise<LoginResponse> => {
   try {
-    // Kiểm tra nếu là admin thì sử dụng endpoint khác
-    const isAdmin = username.toLowerCase().startsWith('admin');
-    const endpoint = isAdmin ? '/Admins/login' : '/Auth/login';
-    
-    const response = await api.post<LoginResponse>(endpoint, { username, password });
+    const response = await api.post<LoginResponse>('/Auth/login', { 
+      username, 
+      password,
+      userType 
+    });
     console.log('Login response:', response);
 
     if (response.data?.success && response.data?.data?.token) {
@@ -204,6 +205,10 @@ export const getRoleFromToken = (token?: string): string | null => {
       return null;
     }
 
+    // Lưu role vào sessionStorage để dễ truy cập
+    sessionStorage.setItem('userRole', role);
+    console.log('Role from token:', role);
+    
     return role;
   } catch (error) {
     console.error('Error getting role from token:', error);

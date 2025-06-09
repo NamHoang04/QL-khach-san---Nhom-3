@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ukRerQbhV34=",
+  "dgSpecHash": "VLHlpTfAvik=",
   "success": true,
-  "projectFilePath": "D:\\2-- Code phat trien ung dung web\\Web final\\Project\\Backend\\HotelManagementAPI\\HotelManagementAPI.csproj",
+  "projectFilePath": "D:\\2-- Code phat trien ung dung web\\1 -- Web QLKS final\\QL-khach-san---Nhom-3\\Backend\\HotelManagementAPI\\HotelManagementAPI.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Nam Hoangg\\.nuget\\packages\\azure.core\\1.25.0\\azure.core.1.25.0.nupkg.sha512",
     "C:\\Users\\Nam Hoangg\\.nuget\\packages\\azure.identity\\1.7.0\\azure.identity.1.7.0.nupkg.sha512",

@@ -1,49 +1,37 @@
-import { get, post, put, del } from './api-service';
+import { api } from './api';
 
 // Định nghĩa interface cho dịch vụ
 export interface Service {
-  id?: string
-  name: string
-  description: string
-  price: number
-  category: string
-  isAvailable: boolean
-  image?: string
-  createdAt?: string
-  updatedAt?: string
+  id: number;
+  name: string;
+  price: number;
+  description?: string;
+}
+
+export interface ServiceUpsertDto {
+  name: string;
+  price: number;
+  description?: string;
 }
 
 // Hàm lấy danh sách dịch vụ
 export async function getServices(): Promise<Service[]> {
-  return get<Service[]>('services');
-}
-
-// Hàm lấy chi tiết dịch vụ theo ID
-export async function getServiceById(id: string): Promise<Service | null> {
-  return get<Service>(`services/${id}`);
-}
-
-// Hàm lấy danh sách dịch vụ theo danh mục
-export async function getServicesByCategory(category: string): Promise<Service[]> {
-  return get<Service[]>(`services/byCategory/${category}`);
+  const response = await api.get<Service[]>('/Services');
+  return response.data;
 }
 
 // Hàm tạo dịch vụ mới
-export async function createService(service: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>): Promise<Service> {
-  return post<Service>('services', service);
+export async function createService(data: ServiceUpsertDto): Promise<Service> {
+  const response = await api.post<Service>('/Services', data);
+  return response.data;
 }
 
 // Hàm cập nhật dịch vụ
-export async function updateService(id: string, serviceData: Partial<Service>): Promise<Service> {
-  return put<Service>(`services/${id}`, serviceData);
+export async function updateService(id: number, data: ServiceUpsertDto): Promise<void> {
+  await api.put(`/Services/${id}`, data);
 }
 
 // Hàm xóa dịch vụ
-export async function deleteService(id: string): Promise<void> {
-  return del<void>(`services/${id}`);
-}
-
-// Hàm cập nhật trạng thái khả dụng của dịch vụ
-export async function updateServiceAvailability(id: string, isAvailable: boolean): Promise<Service> {
-  return put<Service>(`services/${id}/availability`, { isAvailable });
+export async function deleteService(id: number): Promise<void> {
+  await api.delete(`/Services/${id}`);
 } 

@@ -19,7 +19,7 @@ import { SidebarBase, SidebarMenuItem } from "../common/sidebar-base"
 // Định nghĩa các mục menu cho Admin
 const adminMenuItems: SidebarMenuItem[] = [
   { href: "/admin/dashboard", label: "Trang chính", icon: Home },
-  { href: "/admin/booking", label: "Đặt phòng", icon: Calendar },
+  { href: "/admin/bookings", label: "Đặt phòng", icon: Calendar },
   { href: "/admin/rooms-management", label: "Quản lý phòng", icon: BedDouble, feature: "rooms-create" },
   { href: "/admin/rooms", label: "Danh sách phòng", icon: Key },
   { href: "/admin/room-types", label: "Loại phòng", icon: LayoutGrid, feature: "room-types" },

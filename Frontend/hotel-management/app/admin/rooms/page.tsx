@@ -1,22 +1,44 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Search, CheckCircle } from "lucide-react"
 import { NewRoomDialog } from "@/components/new-room-dialog"
 import { EditRoomDialog } from "@/components/edit-room-dialog"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { api } from "@/lib/api"
+import { Spinner } from "@/components/ui/spinner"
 
+// Định nghĩa kiểu dữ liệu cho một phòng, khớp với DTO của backend
 interface Room {
-  id: string
+  id: number // ID là number
   roomNumber: string
-  roomType: string
-  floor: string
-  price: string
-  status: "available" | "occupied" | "maintenance"
+  roomTypeId: number
+  roomType?: {
+    id: number
+    name: string
+    price: number
+  }
+  floor: number
+  price: number
+  status: "Available" | "Occupied" | "Maintenance"
+  description?: string
+  roomTypeName?: string // Thêm từ DTO
+}
+
+// Định nghĩa kiểu dữ liệu cho DTO tạo/sửa phòng
+interface RoomUpsertDTO {
+  roomNumber: string
+  roomTypeId: number
+  floor: number
+  price: number
+  status: "Available" | "Occupied" | "Maintenance"
   description?: string
 }
+
+// Định nghĩa kiểu dữ liệu cho response từ API, backend không có success/data wrapper
+// type ApiResponse = Room[];
 
 export default function AdminRoomsPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -24,100 +46,69 @@ export default function AdminRoomsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
-  
-  // Sample rooms data
-  const [rooms, setRooms] = useState<Room[]>([
-    {
-      id: "1",
-      roomNumber: "101",
-      roomType: "Phòng Standard",
-      floor: "1",
-      price: "750,000",
-      status: "available"
-    },
-    {
-      id: "2",
-      roomNumber: "102",
-      roomType: "Phòng Deluxe",
-      floor: "1",
-      price: "1,200,000",
-      status: "occupied"
-    },
-    {
-      id: "3",
-      roomNumber: "201",
-      roomType: "Phòng Standard",
-      floor: "2",
-      price: "750,000",
-      status: "maintenance"
-    },
-    {
-      id: "4",
-      roomNumber: "202",
-      roomType: "Phòng Suite",
-      floor: "2",
-      price: "2,000,000",
-      status: "available"
-    }
-  ])
+  const [rooms, setRooms] = useState<Room[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleAddRoom = (roomData: any) => {
-    const newRoom: Room = {
-      id: `${rooms.length + 1}`,
-      roomNumber: roomData.roomNumber,
-      roomType: roomData.roomType,
-      floor: roomData.floor,
-      price: roomData.price,
-      status: roomData.status as "available" | "occupied" | "maintenance",
-      description: roomData.description
+  const fetchRooms = useCallback(async () => {
+    try {
+      setLoading(true)
+      // Sửa lại đường dẫn API và kiểu dữ liệu response
+      const response = await api.get<Room[]>("/Rooms")
+      setRooms(response.data)
+      setError(null)
+    } catch (err: any) {
+      console.error("Failed to fetch rooms:", err)
+      const errorMessage = err.message || "Lỗi kết nối đến máy chủ."
+      setError(errorMessage)
+      toast.error(`Không thể tải danh sách phòng: ${errorMessage}`)
+    } finally {
+      setLoading(false)
     }
-    
-    setRooms([...rooms, newRoom])
-    
-    // Show success toast with check icon
-    toast.success(
-      <div className="flex items-center gap-2">
-        <CheckCircle className="h-5 w-5 text-green-500" />
-        <span>Phòng đã được thêm thành công!</span>
-      </div>
-    )
+  }, [])
+
+  useEffect(() => {
+    fetchRooms()
+  }, [fetchRooms])
+
+  const handleAddRoom = async (roomData: RoomUpsertDTO) => {
+    try {
+      await api.post("/Rooms", roomData)
+      toast.success("Thêm phòng mới thành công!")
+      setIsAddDialogOpen(false)
+      fetchRooms() // Tải lại danh sách phòng
+    } catch (err: any) {
+      console.error("Failed to add room:", err)
+      const errorMessage = err.data?.message || err.message || "Đã có lỗi xảy ra."
+      toast.error(`Thêm phòng thất bại: ${errorMessage}`)
+    }
   }
 
-  const handleEditRoom = (roomData: any) => {
-    setRooms(rooms.map(room => 
-      room.id === selectedRoom?.id ? {
-        ...room,
-        roomNumber: roomData.roomNumber,
-        roomType: roomData.roomType,
-        floor: roomData.floor,
-        price: roomData.price,
-        status: roomData.status,
-        description: roomData.description
-      } : room
-    ))
-    
-    // Show success toast with check icon
-    toast.success(
-      <div className="flex items-center gap-2">
-        <CheckCircle className="h-5 w-5 text-green-500" />
-        <span>Phòng đã được cập nhật thành công!</span>
-      </div>
-    )
+  const handleEditRoom = async (roomData: RoomUpsertDTO) => {
+    if (!selectedRoom) return
+    try {
+      await api.put(`/Rooms/${selectedRoom.id}`, roomData)
+      toast.success(`Cập nhật phòng ${selectedRoom.roomNumber} thành công!`)
+      setIsEditDialogOpen(false)
+      fetchRooms() // Tải lại danh sách phòng
+    } catch (err: any) {
+      console.error("Failed to edit room:", err)
+      const errorMessage = err.data?.message || err.message || "Đã có lỗi xảy ra."
+      toast.error(`Cập nhật phòng thất bại: ${errorMessage}`)
+    }
   }
 
-  const handleDeleteRoom = () => {
-    if (selectedRoom) {
-      setRooms(rooms.filter(room => room.id !== selectedRoom.id))
+  const handleDeleteRoom = async () => {
+    if (!selectedRoom) return
+    try {
+      await api.delete(`/Rooms/${selectedRoom.id}`)
+      toast.success(`Đã xóa phòng ${selectedRoom.roomNumber}.`)
       setIsDeleteDialogOpen(false)
-      setSelectedRoom(null)
-      
-      // Show success toast with check icon
-      toast.success(
-        <div className="flex items-center gap-2">
-          <CheckCircle className="h-5 w-5 text-green-500" />
-          <span>Phòng đã được xóa thành công!</span>
-        </div>
-      )
+      fetchRooms() // Tải lại danh sách phòng
+    } catch (err: any) {
+      console.error("Failed to delete room:", err)
+      const errorMessage = err.data?.message || err.message || "Đã có lỗi xảy ra."
+      toast.error(`Xóa phòng thất bại: ${errorMessage}`)
     }
   }
 
@@ -131,11 +122,27 @@ export default function AdminRoomsPage() {
     setIsDeleteDialogOpen(true)
   }
 
-  const filteredRooms = rooms.filter(room => 
+  const filteredRooms = rooms.filter(room =>
     room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.roomType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.floor.includes(searchQuery)
+    (room.roomTypeName && room.roomTypeName.toLowerCase().includes(searchQuery.toLowerCase()))
   )
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Spinner size="large" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-500 mt-10">
+        <p>Đã xảy ra lỗi:</p>
+        <p>{error}</p>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -197,25 +204,27 @@ export default function AdminRoomsPage() {
                     <div className="text-sm font-medium text-gray-900">{room.roomNumber}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{room.roomType}</div>
+                    <div className="text-sm text-gray-900">{room.roomTypeName || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{room.floor}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{room.price}</div>
+                    <div className="text-sm text-gray-900">
+                      {new Intl.NumberFormat('vi-VN').format(room.price)}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      room.status === 'available' 
+                      room.status === 'Available' 
                         ? 'bg-green-100 text-green-800' 
-                        : room.status === 'occupied' 
+                        : room.status === 'Occupied' 
                           ? 'bg-red-100 text-red-800' 
                           : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {room.status === 'available' 
+                      {room.status === 'Available' 
                         ? 'Sẵn sàng' 
-                        : room.status === 'occupied' 
+                        : room.status === 'Occupied' 
                           ? 'Đang sử dụng' 
                           : 'Bảo trì'}
                     </span>
@@ -294,7 +303,7 @@ export default function AdminRoomsPage() {
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDeleteRoom}
         title="Xác nhận xóa phòng"
-        description={`Bạn có chắc chắn muốn xóa phòng ${selectedRoom?.roomNumber} không? Hành động này không thể hoàn tác.`}
+        description={`Bạn có chắc chắn muốn xóa phòng ${selectedRoom?.roomNumber}? Hành động này không thể hoàn tác.`}
       />
     </div>
   )
