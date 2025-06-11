@@ -3,34 +3,15 @@
 import { forwardRef, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-
-interface InvoiceItem {
-  id: string
-  name: string
-  quantity: number
-  price: number
-  amount: number
-}
-
-interface InvoiceData {
-  id: string
-  customerName: string
-  customerEmail: string
-  issueDate: string
-  items: InvoiceItem[]
-  subtotal: number
-  tax: number
-  total: number
-  status: string
-}
+import { Invoice, InvoiceService } from "@/lib/invoice-service"
 
 interface InvoicePrintProps {
-  invoice: InvoiceData | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  invoice: Invoice | null
+  isOpen: boolean
+  onClose: () => void
 }
 
-export function InvoicePrint({ invoice, open, onOpenChange }: InvoicePrintProps) {
+export function InvoicePrint({ invoice, isOpen, onClose }: InvoicePrintProps) {
   const componentRef = useRef<HTMLDivElement>(null)
   
   const handlePrint = () => {
@@ -78,7 +59,7 @@ export function InvoicePrint({ invoice, open, onOpenChange }: InvoicePrintProps)
   if (!invoice) return null
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Xem hóa đơn</DialogTitle>
@@ -89,7 +70,7 @@ export function InvoicePrint({ invoice, open, onOpenChange }: InvoicePrintProps)
         </div>
         
         <DialogFooter>
-          <Button variant="outline" className="mr-2" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" className="mr-2" onClick={onClose}>
             Đóng
           </Button>
           <Button 
@@ -104,13 +85,26 @@ export function InvoicePrint({ invoice, open, onOpenChange }: InvoicePrintProps)
   )
 }
 
-const InvoicePrintContent = forwardRef<HTMLDivElement, { invoice: InvoiceData }>(function InvoicePrintContent(
+const InvoicePrintContent = forwardRef<HTMLDivElement, { invoice: Invoice }>(function InvoicePrintContent(
   { invoice },
   ref
 ) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
   }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString('vi-VN');
+  };
+  
+  const getSubtotal = (services?: InvoiceService[]) => {
+    if (!services) return 0;
+    return services.reduce((acc, item) => acc + item.amount, 0);
+  };
+  
+  const subtotal = getSubtotal(invoice.services);
+  const tax = subtotal * 0.08; // Assuming a fixed 8% tax rate
 
   return (
     <div ref={ref} className="p-8 bg-white">
@@ -124,12 +118,12 @@ const InvoicePrintContent = forwardRef<HTMLDivElement, { invoice: InvoiceData }>
         <div className="text-right">
           <h2 className="text-2xl font-bold">HÓA ĐƠN</h2>
           <p className="text-gray-600">Số: <span className="font-semibold">{invoice.id}</span></p>
-          <p className="text-gray-600">Ngày: <span className="font-semibold">{invoice.issueDate}</span></p>
+          <p className="text-gray-600">Ngày: <span className="font-semibold">{formatDate(invoice.invoiceDate)}</span></p>
           <div className="mt-2">
             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-              invoice.status === 'Đã thanh toán' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+              invoice.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
             }`}>
-              {invoice.status}
+              {invoice.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chờ thanh toán'}
             </span>
           </div>
         </div>
@@ -138,7 +132,6 @@ const InvoicePrintContent = forwardRef<HTMLDivElement, { invoice: InvoiceData }>
       <div className="py-8 border-b border-gray-200">
         <h3 className="text-lg font-semibold mb-4">Thông tin khách hàng</h3>
         <p><span className="font-medium">Họ tên:</span> {invoice.customerName}</p>
-        <p><span className="font-medium">Email:</span> {invoice.customerEmail}</p>
       </div>
 
       <div className="py-8">
@@ -154,10 +147,10 @@ const InvoicePrintContent = forwardRef<HTMLDivElement, { invoice: InvoiceData }>
             </tr>
           </thead>
           <tbody>
-            {invoice.items.map((item, index) => (
+            {invoice.services?.map((item, index) => (
               <tr key={item.id} className="border-t border-gray-200">
                 <td className="py-3 px-4">{index + 1}</td>
-                <td className="py-3 px-4">{item.name}</td>
+                <td className="py-3 px-4">{item.serviceName}</td>
                 <td className="py-3 px-4 text-center">{item.quantity}</td>
                 <td className="py-3 px-4 text-right">{formatCurrency(item.price)}</td>
                 <td className="py-3 px-4 text-right">{formatCurrency(item.amount)}</td>
@@ -172,15 +165,15 @@ const InvoicePrintContent = forwardRef<HTMLDivElement, { invoice: InvoiceData }>
           <div className="w-72">
             <div className="flex justify-between py-2">
               <span className="font-medium">Tạm tính:</span>
-              <span>{formatCurrency(invoice.subtotal)}</span>
+              <span>{formatCurrency(subtotal)}</span>
             </div>
             <div className="flex justify-between py-2">
               <span className="font-medium">Thuế VAT (8%):</span>
-              <span>{formatCurrency(invoice.tax)}</span>
+              <span>{formatCurrency(tax)}</span>
             </div>
             <div className="flex justify-between py-2 text-lg font-bold">
               <span>Tổng cộng:</span>
-              <span>{formatCurrency(invoice.total)}</span>
+              <span>{formatCurrency(invoice.totalAmount)}</span>
             </div>
           </div>
         </div>

@@ -1,9 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { API_CONFIG, AUTH_CONFIG } from '@/lib/config';
+import Image from 'next/image';
+import Link from 'next/link';
 import { api } from '@/lib/api';
+import { API_CONFIG, AUTH_CONFIG } from '@/lib/config';
 import { jwtDecode } from 'jwt-decode';
+import { AlertTriangle, Eye, EyeOff } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface JwtPayload {
     sub: string;
@@ -15,6 +31,7 @@ interface JwtPayload {
 export default function LoginPage() {
     const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -37,32 +54,34 @@ export default function LoginPage() {
                 password,
             });
 
-            // The token is nested inside response.data.data
             const token = (response.data as any)?.data?.token;
 
             if (!token) {
-                const apiMessage = (response.data as any)?.message || 'phản hồi không hợp lệ';
+                const apiMessage =
+                    (response.data as any)?.message || 'phản hồi không hợp lệ';
                 throw new Error(`Đăng nhập thất bại: ${apiMessage}`);
             }
 
-            // Decode token to get role
             const decoded = jwtDecode<JwtPayload>(token);
-            const role = (decoded.role ||
-                        decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'])?.toLowerCase();
+            const role = (
+                decoded.role ||
+                decoded[
+                    'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'
+                ]
+            )?.toLowerCase();
 
             if (!role) {
-                throw new Error('Không tìm thấy thông tin vai trò người dùng trong token');
+                throw new Error(
+                    'Không tìm thấy thông tin vai trò người dùng trong token',
+                );
             }
 
-            // Save token to localStorage for the API interceptor
             localStorage.setItem(AUTH_CONFIG.tokenKey, token);
 
-            // Save token to cookie for middleware
             const expiryDate = new Date();
-            expiryDate.setTime(expiryDate.getTime() + (24 * 60 * 60 * 1000)); // 24 hours
+            expiryDate.setTime(expiryDate.getTime() + 24 * 60 * 60 * 1000); // 24 hours
             document.cookie = `token=${token}; path=/; expires=${expiryDate.toUTCString()}; SameSite=Strict`;
 
-            // Redirect based on role
             let redirectPath;
             switch (role) {
                 case 'admin':
@@ -79,10 +98,12 @@ export default function LoginPage() {
                     throw new Error(`Vai trò không hợp lệ: ${role}`);
             }
             window.location.href = redirectPath;
-
         } catch (err: any) {
             console.error('Login error:', err);
-            const errorMessage = err?.data?.message || err?.data || err?.message || 'Tài khoản hoặc mật khẩu không chính xác.';
+            const errorMessage =
+                err?.response?.data?.message ||
+                err?.message ||
+                'Tài khoản hoặc mật khẩu không chính xác.';
             setError(errorMessage);
             localStorage.removeItem(AUTH_CONFIG.tokenKey);
         } finally {
@@ -91,70 +112,97 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-8">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        Hotel Management
-                    </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600">
-                        Please sign in to continue
-                    </p>
-                </div>
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    <div className="rounded-md shadow-sm -space-y-px">
-                        <div>
-                            <label htmlFor="username" className="sr-only">
-                                Username
-                            </label>
-                            <input
-                                id="username"
-                                name="username"
-                                type="text"
-                                required
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Username"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="password" className="sr-only">
-                                Password
-                            </label>
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Password"
-                            />
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="text-red-500 text-sm text-center">
-                            {error}
-                        </div>
-                    )}
-
-                    <div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                                loading
-                                    ? 'bg-indigo-400 cursor-not-allowed'
-                                    : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-                            }`}
-                        >
-                            {loading ? (
-                                <span>Đang đăng nhập...</span>
-                            ) : (
-                                <span>Đăng nhập</span>
+        <div className="relative min-h-screen w-full">
+            <Image
+                src="/images/khach-san-14.jpg"
+                alt="Background"
+                fill
+                className="absolute inset-0 -z-10 object-cover"
+            />
+            <div className="flex items-center justify-center min-h-screen p-4 bg-black/20">
+                <Card className="w-full max-w-md">
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl font-bold">
+                            ĐĂNG NHẬP
+                        </CardTitle>
+                        <CardDescription>
+                            Nhập tài khoản của bạn để tiếp tục
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form className="grid gap-4" onSubmit={handleSubmit}>
+                            {error && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Lỗi</AlertTitle>
+                                    <AlertDescription>
+                                        {error}
+                                    </AlertDescription>
+                                </Alert>
                             )}
-                        </button>
-                    </div>
-                </form>
+                            <div className="grid gap-2">
+                                <Label htmlFor="username">Tên đăng nhập</Label>
+                                <Input
+                                    id="username"
+                                    name="username"
+                                    type="text"
+                                    placeholder="tendangnhap"
+                                    required
+                                    disabled={loading}
+                                />
+                            </div>
+                            <div className="grid gap-2 relative">
+                                <div className="flex items-center">
+                                    <Label htmlFor="password">Mật khẩu</Label>
+                                    <Link
+                                        href="/forgot-password"
+                                        className="ml-auto inline-block text-sm underline"
+                                    >
+                                        Quên mật khẩu?
+                                    </Link>
+                                </div>
+                                <Input
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    disabled={loading}
+                                />
+                                <button
+                                    type="button"
+                                    className="absolute right-2.5 top-9"
+                                    onClick={() =>
+                                        setShowPassword((prev) => !prev)
+                                    }
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-5 w-5 text-gray-400" />
+                                    ) : (
+                                        <Eye className="h-5 w-5 text-gray-400" />
+                                    )}
+                                </button>
+                            </div>
+                            <Button
+                                type="submit"
+                                className="w-full"
+                                disabled={loading}
+                            >
+                                {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                            </Button>
+                        </form>
+                    </CardContent>
+                    <CardFooter className="flex flex-col items-center">
+                        <p className="mt-2 text-center text-sm text-gray-600">
+                            Bạn chưa có tài khoản?{' '}
+                            <Link
+                                href="/register"
+                                className="font-medium text-blue-600 hover:underline"
+                            >
+                                Đăng ký
+                            </Link>
+                        </p>
+                    </CardFooter>
+                </Card>
             </div>
         </div>
     );

@@ -1,4 +1,4 @@
-import { get, post, put, del } from './api-service';
+import { api } from './api';
 
 // Định nghĩa interface cho hóa đơn
 export interface Invoice {
@@ -34,45 +34,52 @@ export interface InvoiceService {
 
 // Hàm lấy danh sách hóa đơn
 export async function getInvoices(): Promise<Invoice[]> {
-  return get<Invoice[]>('invoices');
+  const response = await api.get<Invoice[]>('/invoices');
+  return response.data;
 }
 
 // Hàm lấy chi tiết hóa đơn theo ID
 export async function getInvoiceById(id: string): Promise<Invoice | null> {
-  return get<Invoice>(`invoices/${id}`);
+  const response = await api.get<Invoice>(`/invoices/${id}`);
+  return response.data;
 }
 
 // Hàm lấy hóa đơn theo ID đặt phòng
 export async function getInvoiceByBookingId(bookingId: string): Promise<Invoice | null> {
-  return get<Invoice>(`invoices/byBooking/${bookingId}`);
+  const response = await api.get<Invoice>(`/invoices/byBooking/${bookingId}`);
+  return response.data;
 }
 
 // Hàm tạo hóa đơn mới
 export async function createInvoice(invoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'>): Promise<Invoice> {
-  return post<Invoice>('invoices', invoice);
+  const response = await api.post<Invoice>('/invoices', invoice);
+  return response.data;
 }
 
 // Hàm cập nhật hóa đơn
 export async function updateInvoice(id: string, invoiceData: Partial<Invoice>): Promise<Invoice> {
-  return put<Invoice>(`invoices/${id}`, invoiceData);
+  const response = await api.put<Invoice>(`/invoices/${id}`, invoiceData);
+  return response.data;
 }
 
 // Hàm xóa hóa đơn
 export async function deleteInvoice(id: string): Promise<void> {
-  return del<void>(`invoices/${id}`);
+  await api.delete<void>(`/invoices/${id}`);
 }
 
 // Hàm ghi nhận thanh toán cho hóa đơn
 export async function recordPayment(id: string, amount: number, paymentMethod: string): Promise<Invoice> {
-  return post<Invoice>(`invoices/${id}/payment`, { amount, paymentMethod });
+  const response = await api.post<Invoice>(`invoices/${id}/payment`, { amount, paymentMethod });
+  return response.data;
 }
 
 // Hàm thêm dịch vụ vào hóa đơn
 export async function addServiceToInvoice(invoiceId: string, service: Omit<InvoiceService, 'id'>): Promise<InvoiceService> {
-  return post<InvoiceService>(`invoices/${invoiceId}/services`, service);
+  const response = await api.post<InvoiceService>(`invoices/${invoiceId}/services`, service);
+  return response.data;
 }
 
 // Hàm xóa dịch vụ khỏi hóa đơn
 export async function removeServiceFromInvoice(invoiceId: string, serviceId: string): Promise<void> {
-  return del<void>(`invoices/${invoiceId}/services/${serviceId}`);
+  await api.delete<void>(`invoices/${invoiceId}/services/${serviceId}`);
 } 

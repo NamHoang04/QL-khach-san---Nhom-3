@@ -31,6 +31,7 @@ namespace HotelManagementAPI.Controllers
                 {
                     Id = c.Id,
                     CustomerCode = c.CustomerCode,
+                    FullName = c.FullName,
                     UserName = c.UserName,
                     Email = c.Email,
                     Phone = c.Phone,
@@ -55,6 +56,7 @@ namespace HotelManagementAPI.Controllers
             {
                 Id = Customer.Id,
                 CustomerCode = Customer.CustomerCode,
+                FullName = Customer.FullName,
                 UserName = Customer.UserName,
                 Email = Customer.Email,
                 Phone = Customer.Phone,

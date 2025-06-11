@@ -1,56 +1,56 @@
 -- Bảng tài khoản Admin
 CREATE TABLE Admins (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    email VARCHAR(100),
-    role VARCHAR(20) DEFAULT 'Admin'
+    username NVARCHAR(50) NOT NULL UNIQUE,
+    password NVARCHAR(255) NOT NULL,
+    email NVARCHAR(100),
+    role NVARCHAR(20) DEFAULT 'Admin'
 );
 
 -- Bảng loại phòng
 CREATE TABLE room_types (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name NVARCHAR(100) NOT NULL,
     price DECIMAL(15,2) NOT NULL,
-    description TEXT,
+    description NTEXT,
     area INT, -- diện tích m2
     max_guests INT,
-    amenities TEXT, -- tiện nghi (wifi, minibar, ...)
-    image_url VARCHAR(255)
+    amenities NTEXT, -- tiện nghi (wifi, minibar, ...)
+    image_url NVARCHAR(255)
 );
 
 -- Bảng phòng
 CREATE TABLE rooms (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    room_number VARCHAR(10) NOT NULL UNIQUE,
+    room_number NVARCHAR(10) NOT NULL UNIQUE,
     room_type_id INT NOT NULL,
     floor INT,
     price DECIMAL(15,2) NOT NULL,
-    status VARCHAR(50), -- Sẵn sàng, Đang sử dụng, Bảo trì
+    status NVARCHAR(50), -- Sẵn sàng, Đang sử dụng, Bảo trì
     FOREIGN KEY (room_type_id) REFERENCES room_types(id)
 );
 
 -- Bảng khách hàng
 CREATE TABLE Customers (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    Customer_code VARCHAR(10) NOT NULL UNIQUE,
-    UserName VARCHAR(100) NOT NULL,
-    email VARCHAR(100),
-    phone VARCHAR(20),
-    identity_number VARCHAR(20), -- CCCD/CMND
-    address VARCHAR(200),
-    password VARCHAR(255) NOT NULL
+    Customer_code NVARCHAR(10) NOT NULL UNIQUE,
+    UserName NVARCHAR(100) NOT NULL,
+    email NVARCHAR(100),
+    phone NVARCHAR(20),
+    identity_number NVARCHAR(20), -- CCCD/CMND
+    address NVARCHAR(200),
+    password NVARCHAR(255) NOT NULL
 );
 
 -- Bảng đặt phòng
 CREATE TABLE bookings (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    booking_code VARCHAR(10) NOT NULL UNIQUE,
+    booking_code NVARCHAR(10) NOT NULL UNIQUE,
     Customer_id INT NOT NULL,
     room_id INT NOT NULL,
     check_in DATE NOT NULL,
     check_out DATE NOT NULL,
-    status VARCHAR(50), -- Đã xác nhận, Chờ xác nhận, Đã hủy
+    status NVARCHAR(50), -- Đã xác nhận, Chờ xác nhận, Đã hủy
     FOREIGN KEY (Customer_id) REFERENCES Customers(id),
     FOREIGN KEY (room_id) REFERENCES rooms(id)
 );
@@ -58,12 +58,12 @@ CREATE TABLE bookings (
 -- Bảng hóa đơn
 CREATE TABLE invoices (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    invoice_code VARCHAR(15) NOT NULL UNIQUE,
+    invoice_code NVARCHAR(15) NOT NULL UNIQUE,
     Customer_id INT NOT NULL,
     booking_id INT,
     created_at DATE NOT NULL,
     total_amount DECIMAL(15,2) NOT NULL,
-    status VARCHAR(50), -- Đã thanh toán, Chờ thanh toán
+    status NVARCHAR(50), -- Đã thanh toán, Chờ thanh toán
     FOREIGN KEY (Customer_id) REFERENCES Customers(id),
     FOREIGN KEY (booking_id) REFERENCES bookings(id)
 );
@@ -71,40 +71,40 @@ CREATE TABLE invoices (
 -- Bảng dịch vụ
 CREATE TABLE services (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    name NVARCHAR(100) NOT NULL,
     price DECIMAL(15,2) NOT NULL,
-    description TEXT
+    description NTEXT
 );
 
 -- Bảng sự kiện
 CREATE TABLE events (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    location VARCHAR(100),
+    name NVARCHAR(100) NOT NULL,
+    description NTEXT,
+    location NVARCHAR(100),
     start_time DATETIME,
     end_time DATETIME,
     event_date DATE,
-    image_url VARCHAR(255)
+    image_url NVARCHAR(255)
 );
 
 -- Bảng nhân viên
 CREATE TABLE Staff (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    Staff_code VARCHAR(10) NOT NULL UNIQUE,
-    UserName VARCHAR(100) NOT NULL,
-    email VARCHAR(100),
-    phone VARCHAR(20),
-    position VARCHAR(50),
-    status VARCHAR(50), -- Đang làm việc, Tạm nghỉ, Khóa
-    avatar_url VARCHAR(255)
+    Staff_code NVARCHAR(10) NOT NULL UNIQUE,
+    UserName NVARCHAR(100) NOT NULL,
+    email NVARCHAR(100),
+    phone NVARCHAR(20),
+    position NVARCHAR(50),
+    status NVARCHAR(50), -- Đang làm việc, Tạm nghỉ, Khóa
+    avatar_url NVARCHAR(255)
 );
 
 -- Bảng vai trò (roles)
 CREATE TABLE roles (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    description VARCHAR(255)
+    name NVARCHAR(50) NOT NULL UNIQUE,
+    description NVARCHAR(255)
 );
 
 -- Bảng gán vai trò cho tài khoản Admin (Admin_roles)
@@ -119,8 +119,8 @@ CREATE TABLE Admin_roles (
 -- Bảng quyền (permissions)
 CREATE TABLE permissions (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    description VARCHAR(255)
+    name NVARCHAR(50) NOT NULL UNIQUE,
+    description NVARCHAR(255)
 );
 
 -- Bảng gán quyền cho vai trò (role_permissions)

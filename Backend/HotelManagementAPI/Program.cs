@@ -44,12 +44,14 @@ builder.Services.AddAuthentication(options =>
 // Add CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
-    });
+    options.AddPolicy(name: "AllowMyNextApp",
+                      policy  =>
+                      {
+                          // Cho phép yêu cầu từ địa chỉ của ứng dụng Next.js
+                          policy.WithOrigins("http://localhost:3000") 
+                                .AllowAnyHeader()
+                                .AllowAnyMethod();
+                      });
 });
 
 // Add API controllers
@@ -144,10 +146,9 @@ app.Use(async (context, next) =>
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAll");
-
 // Add authentication middleware
 app.UseAuthentication();
+app.UseCors("AllowMyNextApp");
 app.UseAuthorization();
 
 app.MapControllers();

@@ -4,25 +4,27 @@ import { api } from './api';
 export interface Booking {
     id: number;
     bookingCode: string;
-    bookingDate: string;
-    checkInDate: string;
-    checkOutDate: string;
+    checkIn: string;
+    checkOut: string;
     numberOfAdults: number;
     numberOfChildren: number;
-    totalPrice: number;
+    totalPrice?: number;
     status: string;
     note?: string;
     customerId: string;
-    customerName: string; // Thêm từ join
+    customerName: string;
+    customerEmail?: string;
     staffId?: string;
-    staffName?: string; // Thêm từ join
-    roomName: string; // Thêm từ join
+    staffName?: string;
+    roomId: number;
+    roomName: string;
+    roomNumber?: string;
 }
 
 // DTO cho việc tạo và cập nhật
 export interface BookingUpsertDTO {
-  checkInDate: string;
-  checkOutDate: string;
+  checkIn: string;
+  checkOut: string;
   numberOfAdults: number;
   numberOfChildren: number;
   totalPrice: number;
@@ -30,7 +32,7 @@ export interface BookingUpsertDTO {
   note?: string;
   customerId: string;
   staffId?: string;
-  roomId: number; // Cần roomId khi tạo
+  roomId: number;
 }
 
 export async function getBookings(): Promise<Booking[]> {

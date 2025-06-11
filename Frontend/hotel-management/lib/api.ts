@@ -27,7 +27,7 @@ api.interceptors.request.use(
 
 // Thêm interceptor để xử lý response
 api.interceptors.response.use(
-  (response: any) => {
+  (response) => {
     // Trả về thẳng data để các service không cần gọi .data nữa
     return response;
   },
@@ -50,3 +50,8 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const get = <T>(url: string, params?: object) => api.get<T>(url, { params });
+export const post = <T>(url: string, data: any) => api.post<T>(url, data);
+export const put = <T>(url: string, data: any) => api.put<T>(url, data);
+export const del = <T>(url: string) => api.delete<T>(url);

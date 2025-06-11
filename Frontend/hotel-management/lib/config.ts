@@ -3,10 +3,9 @@
 // API Configuration
 export const API_CONFIG = {
   // Sử dụng relative URL để Next.js có thể proxy requests
-  baseUrl: '/api',
+  baseUrl: 'http://localhost:5217/api',
   endpoints: {
     login: '/Auth/login',
-    logout: '/Auth/logout',
   },
   headers: {
     'Content-Type': 'application/json',

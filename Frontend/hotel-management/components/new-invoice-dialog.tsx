@@ -1,510 +1,199 @@
 "use client"
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useState, useEffect, useMemo } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, Trash2, XCircle } from "lucide-react"
+import { PlusCircle, Trash2 } from "lucide-react"
 import { toast } from "sonner"
-
-// Room data for selection
-const roomTypes = [
-  { id: "standard", name: "Phòng Standard", pricePerNight: 1500000 },
-  { id: "deluxe", name: "Phòng Deluxe", pricePerNight: 2000000 },
-  { id: "suite", name: "Phòng Suite", pricePerNight: 2500000 },
-  { id: "family", name: "Phòng Family", pricePerNight: 3000000 },
-]
-
-// Service data
-const hotelServices = [
-  { id: "breakfast", name: "Bữa sáng buffet", price: 250000 },
-  { id: "dinner", name: "Bữa tối tại nhà hàng", price: 350000 },
-  { id: "spa", name: "Dịch vụ Spa", price: 500000 },
-  { id: "laundry", name: "Dịch vụ giặt ủi", price: 150000 },
-  { id: "transport", name: "Đưa đón sân bay", price: 350000 },
-  { id: "tour", name: "Tour tham quan thành phố", price: 1500000 },
-]
-
-interface InvoiceItem {
-  id: string
-  name: string
-  quantity: number
-  price: number
-  amount: number
-}
-
-interface InvoiceData {
-  customerName: string
-  customerEmail: string
-  items: InvoiceItem[]
-  status: string
-  notes: string
-}
+import { Booking, getBookings } from "@/lib/booking-service"
+import { Service, getServices } from "@/lib/service-service"
+import { Invoice, InvoiceService, createInvoice } from "@/lib/invoice-service"
 
 interface NewInvoiceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (invoice: InvoiceData) => void
+  onSave: () => void
 }
 
 export function NewInvoiceDialog({ open, onOpenChange, onSave }: NewInvoiceDialogProps) {
-  const [invoice, setInvoice] = useState<InvoiceData>({
-    customerName: "",
-    customerEmail: "",
-    items: [
-      {
-        id: "1",
-        name: "",
-        quantity: 1,
-        price: 0,
-        amount: 0
-      }
-    ],
-    status: "pending",
-    notes: ""
-  })
-  
-  const [errors, setErrors] = useState({
-    customerName: false,
-    customerEmail: false,
-    items: false
-  })
-  
-  // For room selection
-  const [selectedRoom, setSelectedRoom] = useState("")
-  const [nightsCount, setNightsCount] = useState(1)
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [services, setServices] = useState<Service[]>([])
+  const [selectedBookingId, setSelectedBookingId] = useState<string>("")
+  const [addedServices, setAddedServices] = useState<InvoiceService[]>([])
+  const [notes, setNotes] = useState("")
 
-  const getSubtotal = () => {
-    return invoice.items.reduce((total, item) => total + item.amount, 0)
-  }
-
-  const getTax = () => {
-    return getSubtotal() * 0.08
-  }
-
-  const getTotal = () => {
-    return getSubtotal() + getTax()
-  }
-
-  const handleChange = (field: keyof Omit<InvoiceData, "items">, value: string) => {
-    setInvoice((prev) => ({ ...prev, [field]: value }))
-    
-    // Clear error when field is filled
-    if (field === 'customerName' || field === 'customerEmail') {
-      if (value.trim() !== '') {
-        setErrors(prev => ({ ...prev, [field]: false }))
-      }
-    }
-  }
-
-  const handleItemChange = (index: number, field: keyof InvoiceItem, value: any) => {
-    const newItems = [...invoice.items]
-    newItems[index] = { ...newItems[index], [field]: value }
-    
-    // Recalculate amount
-    if (field === 'quantity' || field === 'price') {
-      newItems[index].amount = newItems[index].quantity * newItems[index].price
-    }
-    
-    setInvoice((prev) => ({ ...prev, items: newItems }))
-    
-    // Clear error if items are valid
-    if (newItems.every(item => item.name && item.price > 0)) {
-      setErrors(prev => ({ ...prev, items: false }))
-    }
-  }
-
-  const addRoom = () => {
-    const room = roomTypes.find(r => r.id === selectedRoom)
-    if (room && nightsCount > 0) {
-      const newItems = [...invoice.items]
-      const roomItem = {
-        id: String(Date.now()),
-        name: `${room.name} - ${nightsCount} đêm`,
-        quantity: nightsCount,
-        price: room.pricePerNight,
-        amount: room.pricePerNight * nightsCount
-      }
-      
-      // Check if we need to replace the first empty item
-      if (newItems.length === 1 && !newItems[0].name) {
-        newItems[0] = roomItem
-      } else {
-        newItems.push(roomItem)
-      }
-      
-      setInvoice(prev => ({ ...prev, items: newItems }))
-      
-      // Clear error if items are valid
-      setErrors(prev => ({ ...prev, items: false }))
-      
-      // Reset selection for next use
-      setSelectedRoom("")
-    }
-  }
-  
-  const addService = (serviceId: string) => {
-    const service = hotelServices.find(s => s.id === serviceId)
-    if (service) {
-      const newItems = [...invoice.items]
-      const serviceItem = {
-        id: String(Date.now()),
-        name: service.name,
-        quantity: 1,
-        price: service.price,
-        amount: service.price
-      }
-      
-      // Check if we need to replace the first empty item
-      if (newItems.length === 1 && !newItems[0].name) {
-        newItems[0] = serviceItem
-      } else {
-        newItems.push(serviceItem)
-      }
-      
-      setInvoice(prev => ({ ...prev, items: newItems }))
-      
-      // Clear error if items are valid
-      setErrors(prev => ({ ...prev, items: false }))
-    }
-  }
-
-  const addItem = () => {
-    setInvoice((prev) => ({
-      ...prev,
-      items: [
-        ...prev.items,
-        {
-          id: String(Date.now()),
-          name: "",
-          quantity: 1,
-          price: 0,
-          amount: 0
+  useEffect(() => {
+    if (open) {
+      const fetchData = async () => {
+        try {
+          const [bookingsData, servicesData] = await Promise.all([
+            getBookings(),
+            getServices(),
+          ]);
+          // Filter for bookings that might need an invoice
+          setBookings(bookingsData.filter(b => b.status === 'Confirmed' || b.status === 'CheckedIn' || b.status === 'CheckedOut'));
+          setServices(servicesData);
+        } catch (error) {
+          toast.error("Không thể tải dữ liệu đặt phòng hoặc dịch vụ.");
         }
-      ]
-    }))
-  }
-
-  const removeItem = (index: number) => {
-    if (invoice.items.length > 1) {
-      const newItems = [...invoice.items]
-      newItems.splice(index, 1)
-      setInvoice((prev) => ({ ...prev, items: newItems }))
+      };
+      fetchData();
     }
-  }
+  }, [open]);
 
-  const validateForm = () => {
-    const newErrors = {
-      customerName: !invoice.customerName.trim(),
-      customerEmail: !invoice.customerEmail.trim(),
-      items: invoice.items.length === 0 || invoice.items.some(item => !item.name || item.price <= 0)
-    }
+  const selectedBooking = useMemo(() => {
+    return bookings.find(b => String(b.id) === selectedBookingId);
+  }, [selectedBookingId, bookings]);
+
+  const invoiceItems = useMemo(() => {
+    if (!selectedBooking) return [];
     
-    setErrors(newErrors)
+    const roomCharge: InvoiceService = {
+      serviceId: `room-${selectedBooking.roomId}`,
+      serviceName: `Tiền phòng - ${selectedBooking.roomName}`,
+      quantity: 1, // Placeholder, can be improved to calculate nights
+      price: selectedBooking.totalPrice || 0,
+      amount: selectedBooking.totalPrice || 0,
+    };
     
-    return !Object.values(newErrors).some(error => error)
-  }
+    return [roomCharge, ...addedServices];
+  }, [selectedBooking, addedServices]);
 
-  const handleSave = () => {
-    if (validateForm()) {
-      onSave(invoice)
-      onOpenChange(false)
-      // Reset form
-      setInvoice({
-        customerName: "",
-        customerEmail: "",
-        items: [
-          {
-            id: "1",
-            name: "",
-            quantity: 1,
-            price: 0,
-            amount: 0
-          }
-        ],
-        status: "pending",
-        notes: ""
-      })
-      setErrors({
-        customerName: false,
-        customerEmail: false,
-        items: false
-      })
-    } else {
-      // Show validation error toast
-      toast.error(
-        <div className="flex items-center gap-2">
-          <XCircle className="h-5 w-5 text-red-500" />
-          <span>Vui lòng điền đầy đủ thông tin bắt buộc!</span>
-        </div>
-      )
+  const totalAmount = useMemo(() => {
+    return invoiceItems.reduce((sum, item) => sum + item.amount, 0);
+  }, [invoiceItems]);
+
+  const handleAddService = (serviceId: string) => {
+    const service = services.find(s => String(s.id) === serviceId);
+    if (service) {
+      setAddedServices(prev => {
+        const existing = prev.find(s => s.serviceId === serviceId);
+        if (existing) {
+          return prev.map(s => s.serviceId === serviceId ? { ...s, quantity: s.quantity + 1, amount: s.price * (s.quantity + 1) } : s);
+        } else {
+          return [...prev, { serviceId, serviceName: service.name, price: service.price, quantity: 1, amount: service.price }];
+        }
+      });
     }
+  };
+
+  const handleRemoveService = (serviceId: string) => {
+    setAddedServices(prev => prev.filter(s => s.serviceId !== serviceId));
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
-  }
+  const handleSave = async () => {
+    if (!selectedBooking) {
+      toast.error("Vui lòng chọn một đặt phòng để tạo hóa đơn.");
+      return;
+    }
+
+    const newInvoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'> = {
+      bookingId: String(selectedBooking.id),
+      customerId: selectedBooking.customerId,
+      roomId: String(selectedBooking.roomId),
+      checkInDate: selectedBooking.checkIn,
+      checkOutDate: selectedBooking.checkOut,
+      invoiceDate: new Date().toISOString(),
+      services: invoiceItems,
+      totalAmount: totalAmount,
+      paidAmount: 0,
+      paymentStatus: 'unpaid',
+      notes: notes,
+    };
+
+    try {
+      await createInvoice(newInvoice);
+      toast.success("Hóa đơn đã được tạo thành công!");
+      onSave(); // This will trigger a refetch in the parent
+      onOpenChange(false); // Close dialog
+    } catch (error) {
+      toast.error("Tạo hóa đơn thất bại.");
+      console.error(error);
+    }
+  };
+  
+  const formatCurrency = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] p-0 overflow-auto max-h-[90vh]">
-        <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <DialogHeader className="mb-6">
-            <DialogTitle className="text-2xl font-bold text-center text-blue-700">TẠO HÓA ĐƠN MỚI</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 text-gray-700">Thông tin khách hàng</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="customerName" className="text-sm text-gray-600">
-                    Họ tên khách hàng <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="customerName"
-                    value={invoice.customerName}
-                    onChange={(e) => handleChange("customerName", e.target.value)}
-                    className={`border-gray-300 ${errors.customerName ? 'border-red-500 focus:ring-red-500' : ''}`}
-                    placeholder="Nhập tên khách hàng..."
-                    required
-                  />
-                  {errors.customerName && (
-                    <p className="text-red-500 text-xs mt-1">Tên khách hàng là bắt buộc</p>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="customerEmail" className="text-sm text-gray-600">
-                    Email <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="customerEmail"
-                    type="email"
-                    value={invoice.customerEmail}
-                    onChange={(e) => handleChange("customerEmail", e.target.value)}
-                    className={`border-gray-300 ${errors.customerEmail ? 'border-red-500 focus:ring-red-500' : ''}`}
-                    placeholder="Nhập email khách hàng..."
-                    required
-                  />
-                  {errors.customerEmail && (
-                    <p className="text-red-500 text-xs mt-1">Email khách hàng là bắt buộc</p>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 text-gray-700">Thông tin phòng</h3>
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-4">
-                <div className="md:col-span-6">
-                  <Label className="text-sm text-gray-600 mb-2 block">
-                    Loại phòng
-                  </Label>
-                  <Select value={selectedRoom} onValueChange={setSelectedRoom}>
-                    <SelectTrigger className="border-gray-300">
-                      <SelectValue placeholder="Chọn loại phòng" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roomTypes.map((room) => (
-                        <SelectItem key={room.id} value={room.id}>
-                          {room.name} - {formatCurrency(room.pricePerNight)}/đêm
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="md:col-span-3">
-                  <Label className="text-sm text-gray-600 mb-2 block">
-                    Số đêm
-                  </Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={nightsCount}
-                    onChange={(e) => setNightsCount(Number(e.target.value))}
-                    className="border-gray-300"
-                  />
-                </div>
-                <div className="md:col-span-3 flex items-end">
-                  <Button 
-                    type="button"
-                    onClick={addRoom}
-                    disabled={!selectedRoom || nightsCount < 1}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    Thêm vào hóa đơn
-                  </Button>
-                </div>
-              </div>
-              
-              <h3 className="text-lg font-semibold mb-4 text-gray-700">Dịch vụ bổ sung</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                {hotelServices.map(service => (
-                  <Button
-                    key={service.id}
-                    type="button"
-                    variant="outline"
-                    onClick={() => addService(service.id)}
-                    className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                  >
-                    {service.name} - {formatCurrency(service.price)}
-                  </Button>
+      <DialogContent className="sm:max-w-3xl">
+        <DialogHeader><DialogTitle>Tạo Hóa Đơn Mới</DialogTitle></DialogHeader>
+        <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="booking" className="text-right">Chọn Đặt Phòng</Label>
+            <Select onValueChange={setSelectedBookingId} value={selectedBookingId}>
+              <SelectTrigger className="col-span-3"><SelectValue placeholder="Tìm theo mã đặt phòng hoặc tên khách..." /></SelectTrigger>
+              <SelectContent>
+                {bookings.map(b => (
+                  <SelectItem key={b.id} value={String(b.id)}>
+                    {b.bookingCode} - {b.customerName} - {b.roomName}
+                  </SelectItem>
                 ))}
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-700">Danh sách dịch vụ</h3>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="text-blue-600 border-blue-600"
-                  onClick={addItem}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Thêm dịch vụ
-                </Button>
-              </div>
-              
-              {errors.items && (
-                <p className="text-red-500 text-sm mb-3">Vui lòng thêm ít nhất một dịch vụ vào hóa đơn</p>
-              )}
-
-              <div className="space-y-4">
-                {invoice.items.map((item, index) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-4 items-end border-b border-gray-100 pb-4">
-                    <div className="col-span-5">
-                      <Label htmlFor={`item-name-${index}`} className="text-sm text-gray-600 mb-1 block">
-                        Tên dịch vụ
-                      </Label>
-                      <Input
-                        id={`item-name-${index}`}
-                        value={item.name}
-                        onChange={(e) => handleItemChange(index, "name", e.target.value)}
-                        className="border-gray-300"
-                        placeholder="Tên dịch vụ..."
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label htmlFor={`item-quantity-${index}`} className="text-sm text-gray-600 mb-1 block">
-                        Số lượng
-                      </Label>
-                      <Input
-                        id={`item-quantity-${index}`}
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(index, "quantity", Number(e.target.value))}
-                        className="border-gray-300"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label htmlFor={`item-price-${index}`} className="text-sm text-gray-600 mb-1 block">
-                        Đơn giá
-                      </Label>
-                      <Input
-                        id={`item-price-${index}`}
-                        type="number"
-                        min="0"
-                        value={item.price}
-                        onChange={(e) => handleItemChange(index, "price", Number(e.target.value))}
-                        className="border-gray-300"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label htmlFor={`item-amount-${index}`} className="text-sm text-gray-600 mb-1 block">
-                        Thành tiền
-                      </Label>
-                      <Input
-                        id={`item-amount-${index}`}
-                        value={formatCurrency(item.amount)}
-                        readOnly
-                        className="border-gray-300 bg-gray-50"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Button 
-                        type="button" 
-                        variant="ghost"
-                        className="text-red-600 hover:text-red-700" 
-                        onClick={() => removeItem(index)}
-                        disabled={invoice.items.length === 1}
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 flex flex-col items-end space-y-1">
-                <div className="flex w-72 justify-between">
-                  <span className="text-gray-600">Tạm tính:</span>
-                  <span>{formatCurrency(getSubtotal())}</span>
-                </div>
-                <div className="flex w-72 justify-between">
-                  <span className="text-gray-600">Thuế VAT (8%):</span>
-                  <span>{formatCurrency(getTax())}</span>
-                </div>
-                <div className="flex w-72 justify-between font-semibold text-lg">
-                  <span>Tổng cộng:</span>
-                  <span className="text-blue-700">{formatCurrency(getTotal())}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="status" className="text-sm text-gray-600">
-                    Trạng thái thanh toán
-                  </Label>
-                  <Select value={invoice.status} onValueChange={(value) => handleChange("status", value)}>
-                    <SelectTrigger className="border-gray-300">
-                      <SelectValue placeholder="Chọn trạng thái thanh toán" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Chờ thanh toán</SelectItem>
-                      <SelectItem value="paid">Đã thanh toán</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  <Label htmlFor="notes" className="text-sm text-gray-600">
-                    Ghi chú
-                  </Label>
-                  <Textarea
-                    id="notes"
-                    value={invoice.notes}
-                    onChange={(e) => handleChange("notes", e.target.value)}
-                    className="min-h-[80px] border-gray-300"
-                    placeholder="Nhập ghi chú (nếu có)..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <Button 
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="border-gray-300 text-gray-700 hover:bg-gray-100"
-              >
-                Hủy bỏ
-              </Button>
-              <Button 
-                onClick={handleSave}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Lưu hóa đơn
-              </Button>
-            </div>
+              </SelectContent>
+            </Select>
           </div>
+
+          {selectedBooking && (
+            <>
+              <div className="mt-4 p-4 border rounded-md bg-gray-50">
+                <h3 className="font-semibold mb-2">Chi Tiết Hóa Đơn</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <p><strong>Khách hàng:</strong> {selectedBooking.customerName}</p>
+                  <p><strong>Phòng:</strong> {selectedBooking.roomName}</p>
+                </div>
+                <div className="mt-4">
+                    <table className="w-full text-sm">
+                        <thead><tr className="border-b"><th className="text-left py-1">Dịch vụ</th><th className="text-right py-1">Thành tiền</th></tr></thead>
+                        <tbody>
+                            {invoiceItems.map(item => (
+                                <tr key={item.serviceId}>
+                                    <td className="py-1">{item.serviceName} (x{item.quantity})</td>
+                                    <td className="text-right py-1">{formatCurrency(item.amount)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <Label>Thêm Dịch Vụ Khác</Label>
+                <div className="flex gap-2 mt-2">
+                    <Select onValueChange={handleAddService} value="">
+                        <SelectTrigger><SelectValue placeholder="Chọn dịch vụ..." /></SelectTrigger>
+                        <SelectContent>
+                            {services.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="mt-2 space-y-1">
+                    {addedServices.map(s => (
+                        <div key={s.serviceId} className="flex justify-between items-center text-sm p-1 bg-blue-50 rounded">
+                            <span>{s.serviceName} x{s.quantity}</span>
+                            <Button variant="ghost" size="sm" onClick={() => handleRemoveService(s.serviceId)}><Trash2 className="w-4 h-4 text-red-500"/></Button>
+                        </div>
+                    ))}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <Label htmlFor="notes">Ghi Chú</Label>
+                <Textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} />
+              </div>
+
+              <div className="mt-6 text-right">
+                <p className="font-bold text-xl">Tổng Cộng: {formatCurrency(totalAmount)}</p>
+              </div>
+            </>
+          )}
         </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Hủy</Button>
+          <Button onClick={handleSave} disabled={!selectedBooking}>Lưu Hóa Đơn</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

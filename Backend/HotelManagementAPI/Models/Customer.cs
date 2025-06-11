@@ -23,7 +23,15 @@ namespace HotelManagementAPI.Models
         [StringLength(10)]
         [Column("Customer_code")]
         public string CustomerCode { get; set; } = string.Empty;
-        
+
+                /// <summary>
+        /// Họ và tên đầy đủ của khách hàng.
+        /// </summary>
+        [Required]
+        [StringLength(100)]
+        [Column("fullname")]
+        public string FullName { get; set; } = string.Empty;
+
         /// <summary>
         /// Họ và tên đầy đủ của khách hàng.
         /// </summary>

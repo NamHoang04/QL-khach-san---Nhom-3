@@ -10,58 +10,57 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Booking, BookingUpsertDTO } from "@/lib/booking-service"
 import { getCustomers, CustomerData } from "@/lib/customer-service"
-import { getRooms, Room } from "@/lib/room-service"
+import { Room } from "@/lib/room-service"
 
 interface BookingDialogProps {
   isOpen: boolean
   onClose: () => void
   onSave: (data: BookingUpsertDTO) => Promise<void>
   booking: Booking | null
+  rooms: Room[]
 }
 
-export function BookingDialog({ isOpen, onClose, onSave, booking }: BookingDialogProps) {
+export function BookingDialog({ isOpen, onClose, onSave, booking, rooms }: BookingDialogProps) {
   const [formData, setFormData] = useState<Partial<BookingUpsertDTO>>({})
   const [customers, setCustomers] = useState<CustomerData[]>([])
-  const [rooms, setRooms] = useState<Room[]>([])
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
-    async function fetchData() {
+    async function fetchCustomers() {
         try {
-            const [customersData, roomsData] = await Promise.all([
-                getCustomers(),
-                getRooms()
-            ]);
+            const customersData = await getCustomers()
             setCustomers(customersData);
-            setRooms(roomsData.filter(r => r.status.toLowerCase() === 'available')); // Fix case-sensitivity
         } catch (error) {
-            toast.error("Không thể tải danh sách khách hàng hoặc phòng.")
+            toast.error("Không thể tải danh sách khách hàng.")
         }
     }
+
     if(isOpen) {
-        fetchData();
+        fetchCustomers();
         if (booking) {
           setFormData({
-            checkInDate: booking.checkInDate.split('T')[0],
-            checkOutDate: booking.checkOutDate.split('T')[0],
+            checkIn: booking.checkIn ? booking.checkIn.split('T')[0] : '',
+            checkOut: booking.checkOut ? booking.checkOut.split('T')[0] : '',
             numberOfAdults: booking.numberOfAdults,
             numberOfChildren: booking.numberOfChildren,
-            totalPrice: booking.totalPrice,
+            totalPrice: booking.totalPrice || 0,
             status: booking.status,
             note: booking.note,
             customerId: booking.customerId,
             staffId: booking.staffId,
+            roomId: booking.roomId,
           });
         } else {
           // Reset for new booking
           setFormData({
-            checkInDate: new Date().toISOString().split('T')[0],
-            checkOutDate: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
+            checkIn: new Date().toISOString().split('T')[0],
+            checkOut: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
             numberOfAdults: 1,
             numberOfChildren: 0,
             status: 'Pending',
             customerId: undefined,
             roomId: undefined,
+            totalPrice: 0,
           });
         }
         setErrors({})
@@ -72,10 +71,10 @@ export function BookingDialog({ isOpen, onClose, onSave, booking }: BookingDialo
     const newErrors: { [key: string]: string } = {};
     if (!formData.customerId) newErrors.customerId = "Vui lòng chọn khách hàng.";
     if (!formData.roomId) newErrors.roomId = "Vui lòng chọn phòng.";
-    if (!formData.checkInDate) newErrors.checkInDate = "Ngày nhận phòng là bắt buộc.";
-    if (!formData.checkOutDate) newErrors.checkOutDate = "Ngày trả phòng là bắt buộc.";
-    if (formData.checkInDate && formData.checkOutDate && new Date(formData.checkOutDate) <= new Date(formData.checkInDate)) {
-        newErrors.checkOutDate = "Ngày trả phòng phải sau ngày nhận phòng.";
+    if (!formData.checkIn) newErrors.checkIn = "Ngày nhận phòng là bắt buộc.";
+    if (!formData.checkOut) newErrors.checkOut = "Ngày trả phòng là bắt buộc.";
+    if (formData.checkIn && formData.checkOut && new Date(formData.checkOut) <= new Date(formData.checkIn)) {
+        newErrors.checkOut = "Ngày trả phòng phải sau ngày nhận phòng.";
     }
     if (!formData.numberOfAdults || formData.numberOfAdults <= 0) newErrors.numberOfAdults = "Phải có ít nhất 1 người lớn.";
     if (!formData.totalPrice || formData.totalPrice <= 0) newErrors.totalPrice = "Tổng tiền phải là một số dương.";
@@ -95,6 +94,12 @@ export function BookingDialog({ isOpen, onClose, onSave, booking }: BookingDialo
   const handleInputChange = (field: keyof BookingUpsertDTO, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  const availableRooms = rooms.filter(r => {
+    if (r.status.toLowerCase() === 'available') return true
+    if (booking && String(r.id) === String(booking.roomId)) return true
+    return false
+  })
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -118,20 +123,20 @@ export function BookingDialog({ isOpen, onClose, onSave, booking }: BookingDialo
                 <Select value={String(formData.roomId || '')} onValueChange={(value) => handleInputChange('roomId', Number(value))}>
                     <SelectTrigger className="col-span-3"><SelectValue placeholder="Chọn phòng..." /></SelectTrigger>
                     <SelectContent>
-                        {rooms.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.roomNumber} - {r.roomTypeName}</SelectItem>)}
+                        {availableRooms.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.roomNumber} - {r.roomTypeName}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 {errors.roomId && <p className="col-span-4 text-red-500 text-xs text-right">{errors.roomId}</p>}
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="checkInDate" className="text-right">Ngày nhận</Label>
-                <Input id="checkInDate" type="date" value={formData.checkInDate || ''} onChange={(e) => handleInputChange('checkInDate', e.target.value)} className="col-span-3" />
-                {errors.checkInDate && <p className="col-span-4 text-red-500 text-xs text-right">{errors.checkInDate}</p>}
+                <Input id="checkInDate" type="date" value={formData.checkIn || ''} onChange={(e) => handleInputChange('checkIn', e.target.value)} className="col-span-3" />
+                {errors.checkIn && <p className="col-span-4 text-red-500 text-xs text-right">{errors.checkIn}</p>}
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="checkOutDate" className="text-right">Ngày trả</Label>
-                <Input id="checkOutDate" type="date" value={formData.checkOutDate || ''} onChange={(e) => handleInputChange('checkOutDate', e.target.value)} className="col-span-3" />
-                {errors.checkOutDate && <p className="col-span-4 text-red-500 text-xs text-right">{errors.checkOutDate}</p>}
+                <Input id="checkOutDate" type="date" value={formData.checkOut || ''} onChange={(e) => handleInputChange('checkOut', e.target.value)} className="col-span-3" />
+                {errors.checkOut && <p className="col-span-4 text-red-500 text-xs text-right">{errors.checkOut}</p>}
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="numberOfAdults" className="text-right">Người lớn</Label>
