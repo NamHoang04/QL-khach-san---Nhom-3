@@ -69,5 +69,22 @@ namespace HotelManagementAPI.Controllers
             await _context.SaveChangesAsync();
             return Ok();
         }
+
+        // DELETE: api/BookingServices/ByBooking/5
+        [HttpDelete("ByBooking/{bookingId}")]
+        public async Task<IActionResult> DeleteBookingServices(int bookingId)
+        {
+            var itemsToDelete = await _context.BookingServices
+                .Where(bs => bs.BookingId == bookingId)
+                .ToListAsync();
+
+            if (itemsToDelete.Any())
+            {
+                _context.BookingServices.RemoveRange(itemsToDelete);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok();
+        }
     }
 }

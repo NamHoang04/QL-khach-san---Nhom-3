@@ -7,7 +7,11 @@ import { InvoicePrint } from "@/components/invoice-print"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { toast } from "sonner"
 import * as XLSX from 'xlsx'
-import { getInvoices, deleteInvoice, Invoice } from "@/lib/invoice-service"
+import { getInvoices, deleteInvoice, Invoice, createInvoice } from "@/lib/invoice-service"
+import { getBookings, Booking } from "@/lib/booking-service"
+import { getServicesForBooking } from "@/lib/booking-service-service"
+import { getRooms, getRoomTypes, Room, RoomType } from "@/lib/room-service"
+import { differenceInDays } from 'date-fns'
 import { Spinner } from "@/components/ui/spinner"
 import { Button } from "@/components/ui/button"
 
@@ -21,24 +25,91 @@ export default function AdminInvoicesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchInvoices = useCallback(async () => {
+  const fetchAndProcessData = useCallback(async () => {
     try {
-      setLoading(true)
-      const data = await getInvoices()
-      setInvoices(data)
-      setError(null)
+      setLoading(true);
+      const [invoicesData, bookingsData, roomsData, roomTypesData] = await Promise.all([
+        getInvoices(), 
+        getBookings(),
+        getRooms(),
+        getRoomTypes(),
+      ]);
+      
+      const invoicedBookingIds = new Set(invoicesData.map(inv => String(inv.bookingId)));
+      const bookingsToInvoice = bookingsData.filter(b => b.status === 'CheckedOut' && !invoicedBookingIds.has(String(b.id)));
+      
+      if (bookingsToInvoice.length > 0) {
+        const creationPromises = bookingsToInvoice.map(async (booking) => {
+          // Fetch services for each specific booking
+          const servicesForBooking = await getServicesForBooking(booking.id);
+          
+          // Find room and room type
+          const room = roomsData.find(r => String(r.id) === String(booking.roomId));
+          const roomType = room ? roomTypesData.find(rt => String(rt.id) === String(room.roomTypeId)) : undefined;
+
+          // Calculate room cost
+          let roomCost = 0;
+          if (roomType && booking.checkIn && booking.checkOut) {
+            const checkInDate = new Date(booking.checkIn);
+            const checkOutDate = new Date(booking.checkOut);
+            // Ensure difference is at least 1 day
+            const numberOfDays = Math.max(1, differenceInDays(checkOutDate, checkInDate));
+            roomCost = (roomType.basePrice || 0) * numberOfDays;
+          } else {
+            // Fallback to booking's total price if room/type not found
+            roomCost = booking.totalPrice || 0;
+          }
+
+          const invoiceServices = servicesForBooking.map(bs => ({
+            serviceId: bs.serviceId,
+            serviceName: bs.serviceName || 'Dịch vụ', // Fallback name
+            quantity: bs.quantity,
+            price: bs.price,
+            amount: bs.quantity * bs.price
+          }));
+          
+          const totalServicesAmount = invoiceServices.reduce((sum, s) => sum + s.amount, 0);
+          const totalAmount = roomCost + totalServicesAmount;
+
+          const newInvoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'> = {
+            bookingId: String(booking.id),
+            customerId: booking.customerId,
+            customerName: booking.customerName,
+            roomId: String(booking.roomId),
+            roomNumber: booking.roomNumber,
+            checkInDate: booking.checkIn,
+            checkOutDate: booking.checkOut,
+            totalAmount: totalAmount,
+            paidAmount: 0,
+            paymentStatus: 'unpaid',
+            invoiceDate: new Date().toISOString(), // Use current date
+            services: invoiceServices 
+          };
+          return createInvoice(newInvoice);
+        });
+
+        const newInvoices = await Promise.all(creationPromises);
+        toast.success(`Đã tự động tạo ${newInvoices.length} hóa đơn mới cho các đặt phòng đã trả phòng.`);
+        // Refetch invoices to get the final list
+        const updatedInvoices = await getInvoices();
+        setInvoices(updatedInvoices);
+      } else {
+        setInvoices(invoicesData);
+      }
+
+      setError(null);
     } catch (err: any) {
-      const errorMessage = err?.data?.message || err?.message || "Lỗi kết nối đến máy chủ."
-      setError(errorMessage)
-      toast.error(`Không thể tải danh sách hóa đơn: ${errorMessage}`)
+      const errorMessage = err?.data?.message || err?.message || "Lỗi kết nối đến máy chủ.";
+      setError(errorMessage);
+      toast.error(`Không thể xử lý dữ liệu: ${errorMessage}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    fetchInvoices()
-  }, [fetchInvoices])
+    fetchAndProcessData()
+  }, [fetchAndProcessData])
 
   // Revenue calculation functions
   const getTotalRevenue = () => {
@@ -105,7 +176,7 @@ export default function AdminInvoicesPage() {
   }
 
   const handleAddInvoice = () => {
-    fetchInvoices();
+    fetchAndProcessData();
   }
 
   const handleDeleteInvoice = async () => {
@@ -113,7 +184,7 @@ export default function AdminInvoicesPage() {
       try {
         await deleteInvoice(selectedInvoice.id);
         toast.success(`Đã xóa hóa đơn ${selectedInvoice.id}.`);
-        fetchInvoices(); // Refetch invoices after deletion
+        fetchAndProcessData(); // Refetch invoices after deletion
         setIsDeleteDialogOpen(false);
       } catch (error) {
         toast.error("Xóa hóa đơn thất bại.");

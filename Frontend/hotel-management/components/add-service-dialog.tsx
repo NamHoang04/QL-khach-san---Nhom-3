@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { XCircle } from "lucide-react"
+import { formatCurrency, parseCurrency } from "@/lib/utils"
 
 interface ServiceData {
   name: string
   description: string
-  price: string
+  price: number
   status: string
 }
 
@@ -27,61 +28,48 @@ export function AddServiceDialog({ open, onOpenChange, onSave }: AddServiceDialo
   const [service, setService] = useState<ServiceData>({
     name: "",
     description: "",
-    price: "",
+    price: 0,
     status: "active"
   })
   
   const [errors, setErrors] = useState({
     name: false,
     price: false,
-    priceFormat: false
   })
 
-  const handleChange = (field: keyof ServiceData, value: string) => {
-    // For price field, validate that it contains only numbers, commas and periods
-    if (field === 'price') {
-      // Remove existing format error when field is empty or changed
-      setErrors(prev => ({ ...prev, priceFormat: false }))
-      
-      // Only validate non-empty price values
-      if (value && !/^[0-9,.]+$/.test(value)) {
-        setErrors(prev => ({ ...prev, priceFormat: true }))
-        toast.error(
-          <div className="flex items-center gap-2">
-            <XCircle className="h-5 w-5 text-red-500" />
-            <span>Giá dịch vụ chỉ được chứa số, dấu phẩy và dấu chấm</span>
-          </div>
-        )
-        return
-      }
-    }
-    
+  const handleChange = (field: keyof Omit<ServiceData, 'price'>, value: string) => {
     setService((prev) => ({ ...prev, [field]: value }))
     
     // Clear error when user types in a required field
-    if (field === 'name' || field === 'price') {
+    if (field === 'name') {
       setErrors(prev => ({ ...prev, [field]: false }))
+    }
+  }
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const parsedValue = parseCurrency(value);
+    setService((prev) => ({ ...prev, price: parsedValue }));
+    if (parsedValue > 0) {
+        setErrors(prev => ({...prev, price: false}));
     }
   }
 
   const validateForm = () => {
     const newErrors = {
       name: service.name.trim() === '',
-      price: service.price.trim() === '',
-      priceFormat: service.price.trim() !== '' && !/^[0-9,.]+$/.test(service.price)
+      price: !service.price || service.price <= 0,
     }
     
     setErrors(newErrors)
     
-    if (newErrors.name || newErrors.price || newErrors.priceFormat) {
+    if (newErrors.name || newErrors.price) {
       // Show error toast with X icon
       toast.error(
         <div className="flex items-center gap-2">
           <XCircle className="h-5 w-5 text-red-500" />
           <span>
-            {newErrors.priceFormat 
-              ? 'Giá dịch vụ chỉ được chứa số, dấu phẩy và dấu chấm' 
-              : 'Vui lòng điền đầy đủ các trường bắt buộc'}
+            Vui lòng điền đầy đủ các trường bắt buộc và giá phải lớn hơn 0
           </span>
         </div>
       )
@@ -99,14 +87,13 @@ export function AddServiceDialog({ open, onOpenChange, onSave }: AddServiceDialo
       setService({
         name: "",
         description: "",
-        price: "",
+        price: 0,
         status: "active"
       })
       // Reset errors
       setErrors({
         name: false,
         price: false,
-        priceFormat: false
       })
     }
   }
@@ -152,15 +139,12 @@ export function AddServiceDialog({ open, onOpenChange, onSave }: AddServiceDialo
                   </Label>
                   <Input
                     id="price"
-                    value={service.price}
-                    onChange={(e) => handleChange("price", e.target.value)}
-                    className={`border-b ${errors.price || errors.priceFormat ? 'border-red-500' : 'border-gray-400'} bg-transparent rounded-none focus:border-blue-500 focus-visible:ring-0 focus-visible:ring-offset-0 px-0`}
+                    value={formatCurrency(service.price)}
+                    onChange={handlePriceChange}
+                    className={`border-b ${errors.price ? 'border-red-500' : 'border-gray-400'} bg-transparent rounded-none focus:border-blue-500 focus-visible:ring-0 focus-visible:ring-offset-0 px-0`}
                   />
                   {errors.price && (
-                    <p className="text-xs text-red-500 mt-1">Vui lòng nhập giá dịch vụ</p>
-                  )}
-                  {errors.priceFormat && (
-                    <p className="text-xs text-red-500 mt-1">Giá dịch vụ chỉ được chứa số, dấu phẩy và dấu chấm</p>
+                    <p className="text-xs text-red-500 mt-1">Vui lòng nhập giá dịch vụ hợp lệ</p>
                   )}
                 </div>
                 <div className="grid grid-cols-1 gap-2">
@@ -186,7 +170,7 @@ export function AddServiceDialog({ open, onOpenChange, onSave }: AddServiceDialo
                   variant="outline"
                   onClick={() => {
                     onOpenChange(false)
-                    setErrors({ name: false, price: false, priceFormat: false })
+                    setErrors({ name: false, price: false })
                   }}
                   className="bg-[#f08080] hover:bg-[#e06060] text-white border-none w-24"
                 >

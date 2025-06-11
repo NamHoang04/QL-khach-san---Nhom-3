@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner"
 import { XCircle } from "lucide-react"
 import { api } from "@/lib/api"
+import { formatCurrency, parseCurrency } from "@/lib/utils"
 
 // Kiểu dữ liệu cho một loại phòng
 interface RoomType {
@@ -172,11 +173,10 @@ export function NewRoomDialog({ open, onOpenChange, onSave }: NewRoomDialogProps
                   </Label>
                   <Input
                       id="price"
-                      type="number"
-                      value={room.price || 0}
-                      onChange={(e) => handleChange("price", parseFloat(e.target.value))}
-                      className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0"
+                      value={formatCurrency(room.price)}
+                      className="border-b border-gray-400 bg-gray-100 rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0"
                       placeholder="Giá phòng..."
+                      readOnly
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-2">

@@ -5,9 +5,10 @@ import { Search, Edit, Trash2, PlusCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { getRoomTypes, deleteRoomType, createRoomType, updateRoomType, RoomTypeData, RoomTypeUpsertDTO } from "@/lib/room-type-service"
+import { getRoomTypes, deleteRoomType, RoomTypeData, RoomTypeUpsertDTO, createRoomType, updateRoomType } from "@/lib/room-type-service"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { RoomTypeDialog } from "@/components/room-type-dialog"
+import { formatCurrency } from "@/lib/utils"
 
 export default function AdminRoomTypesPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -22,7 +23,10 @@ export default function AdminRoomTypesPage() {
     try {
       setLoading(true)
       const data = await getRoomTypes()
-      setRoomTypes(data)
+      const filtered = data.filter(rt =>
+        rt.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      setRoomTypes(filtered)
       setError(null)
     } catch (err: any) {
       console.error("Failed to fetch room types:", err)
@@ -32,20 +36,18 @@ export default function AdminRoomTypesPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [searchQuery])
 
   useEffect(() => {
     fetchRoomTypes()
   }, [fetchRoomTypes])
-
+  
   const handleSave = async (data: RoomTypeUpsertDTO) => {
     try {
       if (selectedRoomType) {
-        // Update
         await updateRoomType(selectedRoomType.id, data)
         toast.success(`Đã cập nhật loại phòng "${data.name}".`)
       } else {
-        // Create
         await createRoomType(data)
         toast.success(`Đã tạo loại phòng mới "${data.name}".`)
       }
@@ -54,7 +56,7 @@ export default function AdminRoomTypesPage() {
     } catch (err: any) {
       console.error("Failed to save room type:", err)
       const errorMessage = err.response?.data?.message || err.message || "Đã có lỗi xảy ra."
-      toast.error(`Lưu thất bại: ${errorMessage}`)
+      toast.error(`Lưu loại phòng thất bại: ${errorMessage}`)
     }
   }
 
@@ -65,7 +67,6 @@ export default function AdminRoomTypesPage() {
       toast.success(`Đã xóa loại phòng "${selectedRoomType.name}".`)
       fetchRoomTypes()
     } catch (err: any) {
-      console.error("Failed to delete room type:", err)
       const errorMessage = err.response?.data?.message || err.message || "Đã có lỗi xảy ra."
       toast.error(`Xóa loại phòng thất bại: ${errorMessage}`)
     } finally {
@@ -82,14 +83,6 @@ export default function AdminRoomTypesPage() {
     setSelectedRoomType(roomType)
     setIsDeleteDialogOpen(true)
   }
-  
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN').format(amount);
-  }
-
-  const filteredRoomTypes = roomTypes.filter(rt =>
-    rt.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><Spinner size="large" /></div>
@@ -103,7 +96,7 @@ export default function AdminRoomTypesPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Quản lý Loại Phòng</h1>
-        <p className="text-gray-600">Thêm, sửa, xóa và quản lý các loại phòng của khách sạn</p>
+        <p className="text-gray-600">Thêm, sửa, xóa và quản lý các loại phòng</p>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -131,23 +124,22 @@ export default function AdminRoomTypesPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên loại phòng</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá (VNĐ/đêm)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên Loại Phòng</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá (VNĐ)</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số khách tối đa</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredRoomTypes.map((rt) => (
+              {roomTypes.map((rt) => (
                 <tr key={rt.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{rt.name}</div>
-                    <div className="text-sm text-gray-500">{rt.description?.substring(0, 50)}...</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{formatCurrency(rt.price)}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{rt.maxGuests}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -160,7 +152,7 @@ export default function AdminRoomTypesPage() {
                   </td>
                 </tr>
               ))}
-              {filteredRoomTypes.length === 0 && (
+              {roomTypes.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
                     Không tìm thấy loại phòng nào.
@@ -171,8 +163,7 @@ export default function AdminRoomTypesPage() {
           </table>
         </div>
       </div>
-
-      {/* Dialog for Add/Edit Room Type */}
+      
       {isDialogOpen && (
         <RoomTypeDialog
           isOpen={isDialogOpen}
@@ -182,13 +173,12 @@ export default function AdminRoomTypesPage() {
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDelete}
-        title="Xác nhận xóa loại phòng"
-        description={`Bạn có chắc chắn muốn xóa loại phòng "${selectedRoomType?.name}" không? Các phòng đang sử dụng loại này sẽ không bị ảnh hưởng nhưng bạn không thể khôi phục loại phòng.`}
+        title="Xác nhận xóa Loại phòng"
+        description={`Bạn có chắc chắn muốn xóa loại phòng "${selectedRoomType?.name}" không?`}
       />
     </div>
   )

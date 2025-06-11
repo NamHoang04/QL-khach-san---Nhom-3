@@ -1,48 +1,70 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BookingData } from "@/lib/booking-service"
+import { toast } from "sonner"
+import { Booking, BookingUpsertDTO } from "@/lib/booking-service"
+import { formatCurrency, parseCurrency } from "@/lib/utils"
 
 interface EditBookingDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (booking: BookingData) => void
-  booking: BookingData | null
+  onSave: (booking: Partial<BookingUpsertDTO>) => void
+  booking: Booking | null
 }
 
 export function EditBookingDialog({ open, onOpenChange, onSave, booking }: EditBookingDialogProps) {
-  const [formData, setFormData] = useState<BookingData>({
-    id: "",
-    customerName: "",
-    phone: "",
-    email: "",
-    checkInDate: "",
-    checkOutDate: "",
-    advancePayment: "",
-    agreedPrice: "",
-    note: "",
-    roomType: "",
-    status: "pending",
-  })
+  const router = useRouter()
+  const [formData, setFormData] = useState<Partial<BookingUpsertDTO>>({})
 
   useEffect(() => {
     if (booking) {
-      setFormData(booking)
+      setFormData({
+        checkIn: booking.checkIn,
+        checkOut: booking.checkOut,
+        numberOfAdults: booking.numberOfAdults,
+        numberOfChildren: booking.numberOfChildren,
+        totalPrice: booking.totalPrice,
+        status: booking.status,
+        note: booking.note,
+        customerId: booking.customerId,
+        roomId: booking.roomId,
+      })
     }
   }, [booking])
 
-  const handleChange = (field: keyof BookingData, value: string) => {
+  const handleChange = (field: keyof BookingUpsertDTO, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handlePriceChange = (value: string) => {
+    const parsedValue = parseCurrency(value);
+    setFormData(prev => ({ ...prev, totalPrice: parsedValue }));
+  };
+
   const handleSave = () => {
+    // Validation
+    if ((formData.numberOfAdults ?? 0) < 1) {
+      toast.error("Số người lớn phải có ít nhất là 1.");
+      return;
+    }
+    if ((formData.totalPrice ?? 0) <= 1000) {
+      toast.error("Giá phòng phải lớn hơn 1,000 VNĐ.");
+      return;
+    }
+
     onSave(formData)
     onOpenChange(false)
+
+    if (formData.status === 'CheckedOut') {
+      toast.info("Chuyển đến trang hóa đơn để thanh toán.");
+      router.push('/admin/invoices');
+    }
   }
 
   return (
@@ -58,139 +80,48 @@ export function EditBookingDialog({ open, onOpenChange, onSave, booking }: EditB
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 gap-2">
-                    <Label htmlFor="customerName" className="text-base text-gray-700">
-                      Tên khách hàng
-                    </Label>
-                    <Input
-                      id="customerName"
-                      value={formData.customerName}
-                      onChange={(e) => handleChange("customerName", e.target.value)}
-                      className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10"
-                    />
+                    <Label className="text-base text-gray-700">Khách hàng</Label>
+                    <p className="font-semibold">{booking?.customerName}</p>
                   </div>
-
                   <div className="grid grid-cols-1 gap-2">
-                    <Label htmlFor="phone" className="text-base text-gray-700">
-                      Số điện thoại
-                    </Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2">
-                    <Label htmlFor="email" className="text-base text-gray-700">
-                      Email
-                    </Label>
-                    <Input
-                      id="email"
-                      value={formData.email || ""}
-                      onChange={(e) => handleChange("email", e.target.value)}
-                      className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2">
-                    <Label htmlFor="roomType" className="text-base text-gray-700">
-                      Loại phòng
-                    </Label>
-                    <Select value={formData.roomType} onValueChange={(value) => handleChange("roomType", value)}>
-                      <SelectTrigger
-                        id="roomType"
-                        className="border border-gray-400 bg-transparent rounded-md focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10"
-                      >
-                        <SelectValue placeholder="Chọn loại phòng" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Phòng tổng thống">Phòng tổng thống</SelectItem>
-                        <SelectItem value="Phòng thường">Phòng thường</SelectItem>
-                        <SelectItem value="Phòng VIP">Phòng VIP</SelectItem>
-                        <SelectItem value="Phòng đôi">Phòng đôi</SelectItem>
-                        <SelectItem value="Phòng đơn">Phòng đơn</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-base text-gray-700">Phòng</Label>
+                    <p className="font-semibold">{booking?.roomName}</p>
                   </div>
                 </div>
 
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-6">
                     <div className="grid grid-cols-1 gap-2">
-                      <Label htmlFor="checkInDate" className="text-base text-gray-700">
-                        Ngày nhận phòng
-                      </Label>
-                      <Input
-                        id="checkInDate"
-                        type="date"
-                        value={formData.checkInDate}
-                        onChange={(e) => handleChange("checkInDate", e.target.value)}
-                        className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0 [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:mr-0 [&::-webkit-calendar-picker-indicator]:hover:cursor-pointer"
-                      />
+                      <Label htmlFor="checkInDate" className="text-base text-gray-700">Ngày nhận phòng</Label>
+                      <Input id="checkInDate" type="date" value={formData.checkIn ? formData.checkIn.split('T')[0] : ''} onChange={(e) => handleChange("checkIn", e.target.value)} />
                     </div>
-
                     <div className="grid grid-cols-1 gap-2">
-                      <Label htmlFor="checkOutDate" className="text-base text-gray-700">
-                        Ngày trả phòng
-                      </Label>
-                      <Input
-                        id="checkOutDate"
-                        type="date"
-                        value={formData.checkOutDate}
-                        onChange={(e) => handleChange("checkOutDate", e.target.value)}
-                        className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10 px-0 [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:mr-0 [&::-webkit-calendar-picker-indicator]:hover:cursor-pointer"
-                      />
+                      <Label htmlFor="checkOutDate" className="text-base text-gray-700">Ngày trả phòng</Label>
+                      <Input id="checkOutDate" type="date" value={formData.checkOut ? formData.checkOut.split('T')[0] : ''} onChange={(e) => handleChange("checkOut", e.target.value)} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-6">
                     <div className="grid grid-cols-1 gap-2">
-                      <Label htmlFor="advancePayment" className="text-base text-gray-700">
-                        Tiền trả trước
-                      </Label>
-                      <Input
-                        id="advancePayment"
-                        value={formData.advancePayment}
-                        onChange={(e) => handleChange("advancePayment", e.target.value)}
-                        className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 text-right h-10"
-                      />
+                      <Label htmlFor="numberOfAdults" className="text-base text-gray-700">Số người lớn</Label>
+                      <Input id="numberOfAdults" type="number" value={formData.numberOfAdults || 1} onChange={(e) => handleChange("numberOfAdults", Number(e.target.value))} />
                     </div>
-
                     <div className="grid grid-cols-1 gap-2">
-                      <Label htmlFor="agreedPrice" className="text-base text-gray-700">
-                        Giá thỏa thuận
-                      </Label>
-                      <Input
-                        id="agreedPrice"
-                        value={formData.agreedPrice}
-                        onChange={(e) => handleChange("agreedPrice", e.target.value)}
-                        className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 text-right h-10"
-                      />
+                      <Label htmlFor="totalPrice" className="text-base text-gray-700">Giá (VNĐ)</Label>
+                      <Input id="totalPrice" value={formatCurrency(formData.totalPrice)} onChange={(e) => handlePriceChange(e.target.value)} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-2">
-                    <Label htmlFor="status" className="text-base text-gray-700">
-                      Trạng thái
-                    </Label>
-                    <Select 
-                      value={formData.status} 
-                      onValueChange={(value: "pending" | "confirmed" | "cancelled" | "completed") => 
-                        handleChange("status", value)
-                      }
-                    >
-                      <SelectTrigger
-                        id="status"
-                        className="border border-gray-400 bg-transparent rounded-md focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10"
-                      >
-                        <SelectValue placeholder="Chọn trạng thái" />
-                      </SelectTrigger>
+                    <Label htmlFor="status" className="text-base text-gray-700">Trạng thái</Label>
+                    <Select value={formData.status} onValueChange={(value) => handleChange("status", value)}>
+                      <SelectTrigger><SelectValue placeholder="Chọn trạng thái" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending">Chờ xác nhận</SelectItem>
-                        <SelectItem value="confirmed">Đã xác nhận</SelectItem>
-                        <SelectItem value="cancelled">Đã hủy</SelectItem>
-                        <SelectItem value="completed">Đã hoàn thành</SelectItem>
+                        <SelectItem value="Pending">Chờ xác nhận</SelectItem>
+                        <SelectItem value="Confirmed">Đã xác nhận</SelectItem>
+                        <SelectItem value="CheckedIn">Đã nhận phòng</SelectItem>
+                        <SelectItem value="CheckedOut">Đã trả phòng</SelectItem>
+                        <SelectItem value="Cancelled">Đã hủy</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { formatCurrency, parseCurrency } from "@/lib/utils"
 
 interface RoomType {
   id: string;
@@ -54,11 +55,13 @@ export function EditRoomTypeDialog({ roomType, open, onOpenChange, onSave }: Edi
     });
   };
 
-  const handleNumberChange = (field: 'pricePerNight', value: string) => {
-    const numValue = value ? parseInt(value, 10) : 0;
-    if (!isNaN(numValue)) {
-      handleChange(field, numValue);
-    }
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editedRoomType) return;
+    const parsedValue = parseCurrency(e.target.value);
+    setEditedRoomType((prev) => {
+      if (!prev) return null;
+      return { ...prev, pricePerNight: parsedValue };
+    });
   };
 
   const toggleAmenity = (amenity: string) => {
@@ -128,12 +131,10 @@ export function EditRoomTypeDialog({ roomType, open, onOpenChange, onSave }: Edi
                 </Label>
                 <Input
                   id="pricePerNight"
-                  type="number"
-                  value={editedRoomType.pricePerNight || ""}
-                  onChange={(e) => handleNumberChange("pricePerNight", e.target.value)}
+                  value={formatCurrency(editedRoomType.pricePerNight)}
+                  onChange={handlePriceChange}
                   className="border-b border-gray-400 bg-transparent rounded-none focus:border-blue-500 focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
                   placeholder="Nhập giá"
-                  min="0"
                 />
               </div>
               

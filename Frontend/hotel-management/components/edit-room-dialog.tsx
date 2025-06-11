@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { XCircle } from "lucide-react"
 import { api } from "@/lib/api"
+import { formatCurrency, parseCurrency } from "@/lib/utils"
 
 // Kiểu dữ liệu khớp với trang chính và backend
 interface Room {
@@ -91,8 +92,11 @@ export function EditRoomDialog({ room, open, onOpenChange, onSave }: EditRoomDia
             setFormData(prev => ({ ...prev, price: selectedType.price }));
         }
     }
+    if (field in errors) {
+      setErrors(prev => ({ ...prev, [field]: false }))
+    }
   }
-  
+
   const validateForm = () => {
     const newErrors = {
       roomNumber: !formData.roomNumber?.trim(),
@@ -178,11 +182,10 @@ export function EditRoomDialog({ room, open, onOpenChange, onSave }: EditRoomDia
                   </Label>
                   <Input
                     id="price"
-                    type="number"
-                    value={formData.price || 0}
-                    onChange={(e) => handleChange("price", parseFloat(e.target.value))}
-                    className={`border-gray-300`}
+                    value={formatCurrency(formData.price)}
+                    className={`border-gray-300 bg-gray-100`}
                     placeholder="Giá theo loại phòng..."
+                    readOnly
                   />
                 </div>
               </div>

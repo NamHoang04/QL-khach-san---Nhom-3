@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Service, ServiceUpsertDto } from "@/lib/service-service"
+import { formatCurrency, parseCurrency } from "@/lib/utils"
 
 interface ServiceDialogProps {
   isOpen: boolean
@@ -56,6 +57,11 @@ export function ServiceDialog({ isOpen, onClose, onSave, service }: ServiceDialo
     await onSave(formData as ServiceUpsertDto);
   }
 
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const parsedValue = parseCurrency(e.target.value);
+    setFormData(prev => ({ ...prev, price: parsedValue }));
+  };
+
   const handleInputChange = (field: keyof ServiceUpsertDto, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -74,7 +80,12 @@ export function ServiceDialog({ isOpen, onClose, onSave, service }: ServiceDialo
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="price" className="text-right">Giá</Label>
-            <Input id="price" type="number" value={formData.price || 0} onChange={(e) => handleInputChange('price', Number(e.target.value))} className="col-span-3" />
+            <Input 
+              id="price" 
+              value={formatCurrency(formData.price)} 
+              onChange={handlePriceChange} 
+              className="col-span-3" 
+            />
             {errors.price && <p className="col-span-4 text-red-500 text-xs text-right">{errors.price}</p>}
           </div>
           <div className="grid grid-cols-4 items-center gap-4">

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { RoomTypeData, RoomTypeUpsertDTO } from "@/lib/room-type-service"
+import { formatCurrency, parseCurrency } from "@/lib/utils"
 
 interface RoomTypeDialogProps {
   isOpen: boolean
@@ -58,7 +59,7 @@ export function RoomTypeDialog({ isOpen, onClose, onSave, roomType }: RoomTypeDi
     const newErrors: { [key: string]: string } = {}
     if (!formData.name.trim()) newErrors.name = "Tên loại phòng là bắt buộc."
     if (formData.price <= 0) newErrors.price = "Giá phòng phải lớn hơn 0."
-    if (formData.maxGuests <= 0) newErrors.maxGuests = "Số khách tối đa phải lớn hơn 0."
+    if ((formData.maxGuests ?? 0) <= 0) newErrors.maxGuests = "Số khách tối đa phải lớn hơn 0."
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -70,6 +71,11 @@ export function RoomTypeDialog({ isOpen, onClose, onSave, roomType }: RoomTypeDi
     }
     await onSave(formData)
   }
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const parsedValue = parseCurrency(e.target.value);
+    setFormData(prev => ({ ...prev, price: parsedValue }));
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -85,7 +91,12 @@ export function RoomTypeDialog({ isOpen, onClose, onSave, roomType }: RoomTypeDi
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="price" className="text-right">Giá (VNĐ)</Label>
-            <Input id="price" type="number" value={formData.price || 0} onChange={(e) => setFormData({...formData, price: Number(e.target.value)})} className="col-span-3" />
+            <Input 
+              id="price" 
+              value={formatCurrency(formData.price)} 
+              onChange={handlePriceChange} 
+              className="col-span-3" 
+            />
             {errors.price && <p className="col-span-4 text-red-500 text-xs text-right">{errors.price}</p>}
           </div>
           <div className="grid grid-cols-4 items-center gap-4">

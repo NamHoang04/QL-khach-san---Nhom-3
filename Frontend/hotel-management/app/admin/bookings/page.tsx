@@ -6,7 +6,8 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { getBookings, deleteBooking, Booking, BookingUpsertDTO, createBooking, updateBooking } from "@/lib/booking-service"
-import { Room, getRooms } from "@/lib/room-service"
+import { Room, getRooms, RoomType, getRoomTypes } from "@/lib/room-service"
+import { CustomerData, getCustomers } from "@/lib/customer-service"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { BookingDialog } from "@/components/booking-dialog"
 import { BookingDetailsDialog } from "@/components/booking-details-dialog"
@@ -19,18 +20,25 @@ export default function AdminBookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
+  const [customers, setCustomers] = useState<CustomerData[]>([])
   const [loading, setLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchBookingsAndRooms = useCallback(async () => {
+  const fetchAllData = useCallback(async () => {
     try {
       setLoading(true)
-      const [bookingsData, roomsData] = await Promise.all([
+      const [bookingsData, roomsData, roomTypesData, customersData] = await Promise.all([
         getBookings(),
         getRooms(),
+        getRoomTypes(),
+        getCustomers(),
       ])
       setBookings(bookingsData)
       setRooms(roomsData)
+      setRoomTypes(roomTypesData)
+      setCustomers(customersData)
       setError(null)
     } catch (err: any) {
       const errorMessage = err?.data?.message || err?.message || "Lỗi kết nối đến máy chủ."
@@ -42,23 +50,26 @@ export default function AdminBookingsPage() {
   }, [])
 
   useEffect(() => {
-    fetchBookingsAndRooms()
-  }, [fetchBookingsAndRooms])
+    fetchAllData()
+  }, [fetchAllData])
 
-  const handleSave = async (data: BookingUpsertDTO) => {
+  const handleSave = async (bookingData: BookingUpsertDTO) => {
+    setIsSaving(true);
     try {
       if (selectedBooking) {
-        await updateBooking(selectedBooking.id, data)
+        await updateBooking(selectedBooking.id, bookingData)
         toast.success(`Đã cập nhật đặt phòng ${selectedBooking.bookingCode}.`)
       } else {
-        await createBooking(data)
-        toast.success(`Đã tạo đặt phòng mới.`)
+        const newBooking = await createBooking(bookingData)
+        toast.success(`Đã tạo đặt phòng mới ${newBooking.bookingCode}.`)
       }
-      fetchBookingsAndRooms()
+      fetchAllData()
       setIsDialogOpen(false)
     } catch (err: any) {
         const errorMessage = err?.data?.message || err?.message || "Đã có lỗi xảy ra."
         toast.error(`Lưu đặt phòng thất bại: ${errorMessage}`)
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -67,7 +78,7 @@ export default function AdminBookingsPage() {
     try {
       await deleteBooking(selectedBooking.id)
       toast.success(`Đã xóa đặt phòng ${selectedBooking.bookingCode}.`)
-      fetchBookingsAndRooms()
+      fetchAllData()
     } catch (err: any) {
       const errorMessage = err?.data?.message || err?.message || "Đã có lỗi xảy ra."
       toast.error(`Xóa đặt phòng thất bại: ${errorMessage}`)
@@ -223,6 +234,9 @@ export default function AdminBookingsPage() {
           onSave={handleSave}
           booking={selectedBooking}
           rooms={rooms}
+          roomTypes={roomTypes}
+          customers={customers}
+          isSaving={isSaving}
         />
       )}
 
@@ -231,6 +245,7 @@ export default function AdminBookingsPage() {
           isOpen={isDetailsDialogOpen}
           onClose={() => setIsDetailsDialogOpen(false)}
           onEdit={handleEditFromDetails}
+          onBookingUpdate={fetchAllData}
           booking={selectedBooking}
           roomName={getRoomName(selectedBooking.roomId)}
         />

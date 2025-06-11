@@ -27,10 +27,11 @@ const menuItems = [
   { href: "/staff/dashboard", label: "Trang chính", icon: Home, feature: "", adminOnly: false },
   { href: "/booking", label: "Đặt phòng", icon: Calendar, feature: "" },
   { href: "/rooms", label: "Phòng", icon: Key, feature: "" },
-  { href: "/room-types", label: "Loại phòng", icon: LayoutGrid, feature: "room-types" },
+  { href: "/admin/room-types", label: "Loại phòng", icon: LayoutGrid},
   { href: "/services", label: "Quản lý dịch vụ", icon: BarChart3, feature: "" },
   { href: "/invoices", label: "Quản lý hóa đơn", icon: CreditCard, feature: "" },
   { href: "/customers", label: "Quản lý khách hàng", icon: Users, feature: "" },
+  { href: "/admin/staff", label: "Quản lý nhân viên", icon: Users, adminOnly: true },
   { href: "/events", label: "Quản lý sự kiện", icon: Camera, feature: "" },
 ]
 
@@ -41,10 +42,15 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
   const { logout, user, canAccess, isAdmin } = useAuth()
 
   // Lọc menu dựa trên quyền của người dùng
-  const filteredMenuItems = menuItems.filter(item => 
-    (!item.feature || canAccess(item.feature)) && 
-    (item.adminOnly === undefined || item.adminOnly === isAdmin || !item.adminOnly)
-  )
+  const filteredMenuItems = menuItems.filter(item => {
+    // Nếu item không có yêu cầu đặc biệt về quyền, hiển thị nó
+    if (item.adminOnly === undefined) {
+      return true
+    }
+    // Nếu item yêu cầu quyền admin, chỉ hiển thị nếu user là admin
+    // Nếu item yêu cầu quyền staff (adminOnly: false), chỉ hiển thị nếu user không phải là admin
+    return item.adminOnly === isAdmin
+  })
 
   // Xử lý sự kiện đăng xuất
   const handleLogout = () => {
@@ -53,7 +59,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <aside className={`fixed top-0 left-0 h-screen bg-white shadow-lg transition-all duration-300 z-50 ${isOpen ? 'w-80' : 'w-0'} flex flex-col`}>
+      <aside className={`fixed top-0 left-0 h-screen bg-white shadow-lg transition-all duration-300 z-50 ${isOpen ? 'w-80' : 'w-16'} flex flex-col`}>
         <div className="flex flex-col h-full">
           <div className="p-4 border-b flex items-center justify-between min-h-[64px]">
             {isOpen && (
@@ -75,7 +81,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-gray-100"
+              className={`hover:bg-gray-100 ${!isOpen && 'mx-auto'}`}
               onClick={toggleSidebar}
             >
               <Menu className="h-5 w-5 text-gray-500" />
@@ -119,7 +125,7 @@ export function Sidebar({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </aside>
-      <div className={`transition-all duration-300 ${isOpen ? 'ml-[21rem]' : 'ml-12'} min-h-screen`}>
+      <div className={`transition-all duration-300 ${isOpen ? 'ml-80' : 'ml-16'} min-h-screen`}>
         {children}
       </div>
     </>

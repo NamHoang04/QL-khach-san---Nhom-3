@@ -24,7 +24,7 @@ export default function AdminStaffPage() {
       const data = await getStaffList()
       // Lọc theo tìm kiếm ở phía client
       const filtered = data.filter(staff =>
-        staff.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        staff.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         staff.staffCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
         staff.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         staff.phone.includes(searchQuery)
@@ -50,11 +50,11 @@ export default function AdminStaffPage() {
       if (selectedStaff) {
         // Update
         await updateStaff(selectedStaff.id, data as StaffUpdateDTO)
-        toast.success(`Đã cập nhật nhân viên "${data.userName}".`)
+        toast.success(`Đã cập nhật nhân viên "${(data as StaffUpdateDTO).fullName}".`)
       } else {
         // Create
         await createStaff(data as StaffCreateDTO)
-        toast.success(`Đã tạo nhân viên mới "${data.userName}".`)
+        toast.success(`Đã tạo nhân viên mới "${(data as StaffCreateDTO).fullName}".`)
       }
       fetchStaff()
       setIsDialogOpen(false)
@@ -69,7 +69,7 @@ export default function AdminStaffPage() {
     if (!selectedStaff) return
     try {
       await deleteStaff(selectedStaff.id)
-      toast.success(`Đã xóa nhân viên "${selectedStaff.userName}".`)
+      toast.success(`Đã xóa nhân viên "${selectedStaff.fullName}".`)
       fetchStaff()
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || "Đã có lỗi xảy ra."
@@ -131,7 +131,8 @@ export default function AdminStaffPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã NV</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Họ Tên</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vị trí</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chức vụ</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số điện thoại</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
               </tr>
@@ -143,11 +144,13 @@ export default function AdminStaffPage() {
                     <div className="text-sm font-medium text-gray-900">{staff.staffCode}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{staff.userName}</div>
-                    <div className="text-sm text-gray-500">{staff.email}</div>
+                    <div className="text-sm font-medium text-gray-900">{staff.fullName}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{staff.position}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{staff.phone}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -168,7 +171,7 @@ export default function AdminStaffPage() {
               ))}
               {staffList.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
                     Không tìm thấy nhân viên nào.
                   </td>
                 </tr>
@@ -192,7 +195,7 @@ export default function AdminStaffPage() {
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDelete}
         title="Xác nhận xóa nhân viên"
-        description={`Bạn có chắc chắn muốn xóa nhân viên "${selectedStaff?.userName}"? Hành động này sẽ xóa vĩnh viễn tài khoản của họ.`}
+        description={`Bạn có chắc chắn muốn xóa nhân viên "${selectedStaff?.fullName}"? Hành động này sẽ xóa vĩnh viễn tài khoản của họ.`}
       />
     </div>
   )

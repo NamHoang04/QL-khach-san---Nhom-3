@@ -22,12 +22,13 @@ const adminMenuItems: SidebarMenuItem[] = [
   { href: "/admin/bookings", label: "Đặt phòng", icon: Calendar },
   { href: "/admin/rooms-management", label: "Quản lý phòng", icon: BedDouble, feature: "rooms-create" },
   { href: "/admin/rooms", label: "Danh sách phòng", icon: Key },
-  { href: "/admin/room-types", label: "Loại phòng", icon: LayoutGrid, feature: "room-types" },
+  { href: "/admin/room-types", label: "Loại phòng", icon: LayoutGrid},
   { href: "/admin/services", label: "Dịch vụ", icon: BarChart3 },
+  { href: "/admin/booking-services", label: "Đặt dịch vụ", icon: FileText },
   { href: "/admin/invoices", label: "Hóa đơn", icon: CreditCard },
   { href: "/admin/customers", label: "Khách hàng", icon: Users },
   { href: "/admin/events", label: "Sự kiện", icon: Camera },
-  { href: "/admin/staff", label: "Quản lý nhân viên", icon: UserCog, feature: "user-management" },
+  { href: "/admin/staff", label: "Quản lý nhân viên", icon: UserCog },
   { href: "/admin/settings", label: "Cài đặt hệ thống", icon: Settings, feature: "system-settings" },
 ]
 

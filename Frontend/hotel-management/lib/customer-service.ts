@@ -5,6 +5,7 @@ export interface CustomerData {
   id: string; // Backend dùng int nhưng frontend có thể dùng string để đơn giản
   customerCode: string;
   userName: string;
+  fullName: string;
   email: string;
   phone: string;
   identityNumber?: string;
@@ -12,7 +13,9 @@ export interface CustomerData {
 }
 
 // DTO cho việc tạo và cập nhật
-export type CustomerUpsertDTO = Omit<CustomerData, 'id'>;
+export interface CustomerUpsertDTO extends Omit<CustomerData, 'id'> {
+  password?: string;
+}
 
 
 // Các hàm gọi API cho Customers
@@ -31,7 +34,7 @@ export async function createCustomer(data: CustomerUpsertDTO): Promise<CustomerD
   return response.data;
 }
 
-export async function updateCustomer(id: string, data: CustomerUpsertDTO): Promise<void> {
+export async function updateCustomer(id: string, data: Partial<CustomerUpsertDTO>): Promise<void> {
   await api.put<void>(`/Customers/${id}`, data);
 }
 

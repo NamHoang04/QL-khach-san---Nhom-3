@@ -5,6 +5,7 @@ export interface StaffData {
   id: string; // Backend dùng int
   staffCode: string;
   userName: string;
+  fullName: string;
   email: string;
   phone: string;
   position: string;
@@ -16,6 +17,7 @@ export interface StaffData {
 export interface StaffCreateDTO {
   staffCode: string;
   userName: string;
+  fullName: string;
   email: string;
   phone: string;
   position: string;
@@ -25,7 +27,7 @@ export interface StaffCreateDTO {
 }
 
 // DTO cho việc cập nhật (không bao gồm password)
-export type StaffUpdateDTO = Omit<StaffCreateDTO, 'password' | 'staffCode'>;
+export type StaffUpdateDTO = Omit<StaffCreateDTO, 'staffCode'>;
 
 
 // Các hàm gọi API cho Staff

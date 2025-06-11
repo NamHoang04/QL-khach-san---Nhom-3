@@ -5,9 +5,9 @@ import { Search, Edit, Trash2, PlusCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { getCustomers, deleteCustomer, searchCustomers, CustomerData, CustomerUpsertDTO } from "@/lib/customer-service"
+import { getCustomers, deleteCustomer, searchCustomers, CustomerData, CustomerUpsertDTO, createCustomer, updateCustomer } from "@/lib/customer-service"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
-// import { CustomerDialog } from "@/components/customer-dialog" // Sẽ tạo component dùng chung
+import { CustomerDialog } from "@/components/customer-dialog"
 
 export default function AdminCustomersPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -16,7 +16,9 @@ export default function AdminCustomersPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null)
   const [customers, setCustomers] = useState<CustomerData[]>([])
   const [loading, setLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [dialogErrors, setDialogErrors] = useState<{ [key: string]: string }>({});
 
   const fetchCustomers = useCallback(async (query: string = "") => {
     try {
@@ -39,8 +41,35 @@ export default function AdminCustomersPage() {
   }, [fetchCustomers, searchQuery])
 
   const handleSave = async (data: CustomerUpsertDTO) => {
-    toast.info("Chức năng thêm/sửa khách hàng đang được phát triển.")
-    // Logic gọi API POST/PUT sẽ được thêm ở đây
+    setIsSaving(true)
+    setDialogErrors({}); // Reset errors on new submission
+    try {
+      if (selectedCustomer) {
+        await updateCustomer(selectedCustomer.id, data)
+        toast.success(`Đã cập nhật khách hàng "${data.userName}".`)
+      } else {
+        await createCustomer(data)
+        toast.success(`Đã thêm khách hàng mới "${data.userName}".`)
+      }
+      fetchCustomers(searchQuery)
+      setIsDialogOpen(false)
+    } catch (err: any) {
+      if (err.response?.status === 400 && err.response?.data?.errors) {
+        const backendErrors = err.response.data.errors;
+        const formattedErrors: { [key: string]: string } = {};
+        for (const key in backendErrors) {
+          // Normalize key to match frontend form state (e.g., Email -> email)
+          formattedErrors[key.charAt(0).toLowerCase() + key.slice(1)] = backendErrors[key][0];
+        }
+        setDialogErrors(formattedErrors);
+        toast.error("Thông tin bạn nhập chưa hợp lệ.");
+      } else {
+        const errorMessage = err.response?.data?.message || err.message || "Đã có lỗi xảy ra."
+        toast.error(`Lưu khách hàng thất bại: ${errorMessage}`)
+      }
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleDelete = async () => {
@@ -59,8 +88,8 @@ export default function AdminCustomersPage() {
 
   const openDialog = (customer: CustomerData | null = null) => {
     setSelectedCustomer(customer)
-    // setIsDialogOpen(true)
-    toast.info("Chức năng thêm/sửa khách hàng đang được phát triển.")
+    setDialogErrors({}) // Clear previous errors
+    setIsDialogOpen(true)
   }
 
   const openDeleteDialog = (customer: CustomerData) => {
@@ -122,7 +151,8 @@ export default function AdminCustomersPage() {
                     <div className="text-sm font-medium text-gray-900">{customer.customerCode}</div>
                   </td>
                    <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{customer.userName}</div>
+                    <div className="text-sm font-medium text-gray-900">{customer.fullName}</div>
+                    <div className="text-sm text-gray-500">{customer.userName}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                      <div className="text-sm text-gray-900">{customer.email}</div>
@@ -153,18 +183,17 @@ export default function AdminCustomersPage() {
         </div>
       </div>
 
-      {/* Dialog for Add/Edit Customer 
       {isDialogOpen && (
         <CustomerDialog
           isOpen={isDialogOpen}
           onClose={() => setIsDialogOpen(false)}
           onSave={handleSave}
           customer={selectedCustomer}
+          isSaving={isSaving}
+          serverErrors={dialogErrors}
         />
       )}
-      */}
 
-      {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}

@@ -1,13 +1,16 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Booking } from "@/lib/booking-service"
+import { Booking, updateBooking } from "@/lib/booking-service"
+import { toast } from "sonner"
 
 interface BookingDetailsDialogProps {
   isOpen: boolean
   onClose: () => void
   onEdit: () => void
+  onBookingUpdate: () => void;
   booking: Booking | null
   roomName: string
 }
@@ -42,8 +45,35 @@ const getStatusBadge = (status: string) => {
     }
 }
 
-export function BookingDetailsDialog({ isOpen, onClose, onEdit, booking, roomName }: BookingDetailsDialogProps) {
+export function BookingDetailsDialog({ isOpen, onClose, onEdit, onBookingUpdate, booking, roomName }: BookingDetailsDialogProps) {
+  const router = useRouter();
+
   if (!booking) return null
+
+  const handleCheckIn = async () => {
+    if (!booking) return;
+    try {
+      await updateBooking(booking.id, { status: 'CheckedIn' });
+      toast.success("Đã nhận phòng thành công!");
+      onBookingUpdate();
+      onClose();
+    } catch (error) {
+      toast.error("Thao tác nhận phòng thất bại.");
+    }
+  };
+
+  const handleCheckOut = async () => {
+    if (!booking) return;
+    try {
+      await updateBooking(booking.id, { status: 'CheckedOut' });
+      toast.success("Đã trả phòng thành công! Chuyển đến trang hóa đơn.");
+      onBookingUpdate();
+      onClose();
+      router.push('/admin/invoices');
+    } catch (error) {
+      toast.error("Thao tác trả phòng thất bại.");
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -92,6 +122,12 @@ export function BookingDetailsDialog({ isOpen, onClose, onEdit, booking, roomNam
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>Đóng</Button>
+          {booking.status === 'Confirmed' && (
+            <Button type="button" variant="secondary" onClick={handleCheckIn}>Nhận phòng</Button>
+          )}
+          {booking.status === 'CheckedIn' && (
+            <Button type="button" variant="destructive" onClick={handleCheckOut}>Trả phòng</Button>
+          )}
           <Button type="button" onClick={onEdit}>Chỉnh sửa</Button>
         </DialogFooter>
       </DialogContent>
