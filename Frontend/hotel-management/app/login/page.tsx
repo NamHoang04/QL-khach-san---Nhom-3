@@ -146,7 +146,7 @@ export default function LoginPage() {
                                     id="username"
                                     name="username"
                                     type="text"
-                                    placeholder="nhập tên đăng nhập của bạn"
+                                    placeholder="tendangnhap"
                                     required
                                     disabled={loading}
                                 />
@@ -154,18 +154,16 @@ export default function LoginPage() {
                             <div className="grid gap-2 relative">
                                 <div className="flex items-center">
                                     <Label htmlFor="password">Mật khẩu</Label>
-                                    {/* <Link
+                                    <Link
                                         href="/forgot-password"
-                                        
                                         className="ml-auto inline-block text-sm underline"
                                     >
                                         Quên mật khẩu?
-                                    </Link> */}
+                                    </Link>
                                 </div>
                                 <Input
                                     id="password"
                                     name="password"
-                                    placeholder="Mật khẩu"
                                     type={showPassword ? 'text' : 'password'}
                                     required
                                     disabled={loading}

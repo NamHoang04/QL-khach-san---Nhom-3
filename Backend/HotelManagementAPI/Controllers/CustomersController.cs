@@ -76,7 +76,6 @@ namespace HotelManagementAPI.Controllers
 
             return await _context.Customers
                 .Where(c => c.UserName.Contains(query) || 
-                            c.FullName.Contains(query) ||
                             c.CustomerCode.Contains(query) || 
                             c.Phone.Contains(query) || 
                             c.Email.Contains(query))
@@ -84,7 +83,6 @@ namespace HotelManagementAPI.Controllers
                 {
                     Id = c.Id,
                     CustomerCode = c.CustomerCode,
-                    FullName = c.FullName,
                     UserName = c.UserName,
                     Email = c.Email,
                     Phone = c.Phone,
@@ -107,7 +105,6 @@ namespace HotelManagementAPI.Controllers
             var Customer = new Customer
             {
                 CustomerCode = createCustomerDTO.CustomerCode,
-                FullName = createCustomerDTO.FullName,
                 UserName = createCustomerDTO.UserName,
                 Email = createCustomerDTO.Email,
                 Phone = createCustomerDTO.Phone,
@@ -122,7 +119,6 @@ namespace HotelManagementAPI.Controllers
             {
                 Id = Customer.Id,
                 CustomerCode = Customer.CustomerCode,
-                FullName = Customer.FullName,
                 UserName = Customer.UserName,
                 Email = Customer.Email,
                 Phone = Customer.Phone,
@@ -149,7 +145,6 @@ namespace HotelManagementAPI.Controllers
             }
 
             Customer.CustomerCode = updateCustomerDTO.CustomerCode;
-            Customer.FullName = updateCustomerDTO.FullName;
             Customer.UserName = updateCustomerDTO.UserName;
             Customer.Email = updateCustomerDTO.Email;
             Customer.Phone = updateCustomerDTO.Phone;

@@ -11,9 +11,6 @@ namespace HotelManagementAPI.DTOs
         public string? Position { get; set; }
         public string? Status { get; set; }
         public string? AvatarUrl { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
-        public DateTime? LastLogin { get; set; }
         public string Password { get; set; } = string.Empty;
     }
 

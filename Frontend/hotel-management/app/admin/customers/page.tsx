@@ -5,9 +5,9 @@ import { Search, Edit, Trash2, PlusCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { getCustomers, deleteCustomer, createCustomer, updateCustomer, CustomerData, CustomerUpsertDTO } from "@/lib/customer-service"
+import { getCustomers, deleteCustomer, searchCustomers, CustomerData, CustomerUpsertDTO } from "@/lib/customer-service"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
-import { CustomerDialog } from "@/components/customer-dialog"
+// import { CustomerDialog } from "@/components/customer-dialog" // Sẽ tạo component dùng chung
 
 export default function AdminCustomersPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -17,14 +17,12 @@ export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<CustomerData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [allCustomers, setAllCustomers] = useState<CustomerData[]>([]) // State to hold all customers for client-side search
 
-  const fetchCustomers = useCallback(async () => {
+  const fetchCustomers = useCallback(async (query: string = "") => {
     try {
       setLoading(true)
-      const data = await getCustomers()
-      setAllCustomers(data) // Store all customers
-      setCustomers(data)    // Initially display all
+      const data = query ? await searchCustomers(query) : await getCustomers()
+      setCustomers(data)
       setError(null)
     } catch (err: any) {
       console.error("Failed to fetch customers:", err)
@@ -37,39 +35,12 @@ export default function AdminCustomersPage() {
   }, [])
 
   useEffect(() => {
-    fetchCustomers()
-  }, [fetchCustomers])
-
-  // Client-side search
-  useEffect(() => {
-    const filtered = allCustomers.filter(customer =>
-      customer.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.customerCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.phone.includes(searchQuery) ||
-      customer.identityNumber?.includes(searchQuery)
-    )
-    setCustomers(filtered)
-  }, [searchQuery, allCustomers])
+    fetchCustomers(searchQuery)
+  }, [fetchCustomers, searchQuery])
 
   const handleSave = async (data: CustomerUpsertDTO) => {
-    try {
-      if (selectedCustomer) {
-        // Update
-        await updateCustomer(selectedCustomer.id, data)
-        toast.success(`Đã cập nhật khách hàng "${data.userName}".`)
-      } else {
-        // Create
-        await createCustomer(data)
-        toast.success(`Đã tạo khách hàng mới "${data.userName}".`)
-      }
-      fetchCustomers() // Refetch all customers
-      setIsDialogOpen(false)
-    } catch (err: any) {
-      console.error("Failed to save customer:", err)
-      const errorMessage = err.response?.data?.message || err.message || "Đã có lỗi xảy ra."
-      toast.error(`Lưu khách hàng thất bại: ${errorMessage}`)
-    }
+    toast.info("Chức năng thêm/sửa khách hàng đang được phát triển.")
+    // Logic gọi API POST/PUT sẽ được thêm ở đây
   }
 
   const handleDelete = async () => {
@@ -77,7 +48,7 @@ export default function AdminCustomersPage() {
     try {
       await deleteCustomer(selectedCustomer.id)
       toast.success(`Đã xóa khách hàng "${selectedCustomer.userName}".`)
-      fetchCustomers() // Refetch all customers
+      fetchCustomers(searchQuery)
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || "Đã có lỗi xảy ra."
       toast.error(`Xóa khách hàng thất bại: ${errorMessage}`)
@@ -88,7 +59,8 @@ export default function AdminCustomersPage() {
 
   const openDialog = (customer: CustomerData | null = null) => {
     setSelectedCustomer(customer)
-    setIsDialogOpen(true)
+    // setIsDialogOpen(true)
+    toast.info("Chức năng thêm/sửa khách hàng đang được phát triển.")
   }
 
   const openDeleteDialog = (customer: CustomerData) => {
@@ -181,6 +153,7 @@ export default function AdminCustomersPage() {
         </div>
       </div>
 
+      {/* Dialog for Add/Edit Customer 
       {isDialogOpen && (
         <CustomerDialog
           isOpen={isDialogOpen}
@@ -189,7 +162,9 @@ export default function AdminCustomersPage() {
           customer={selectedCustomer}
         />
       )}
+      */}
 
+      {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}

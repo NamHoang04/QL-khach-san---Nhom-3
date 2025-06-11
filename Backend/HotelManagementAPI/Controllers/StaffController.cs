@@ -43,10 +43,7 @@ namespace HotelManagementAPI.Controllers
                 Phone = s.Phone,
                 Position = s.Position,
                 Status = s.Status,
-                AvatarUrl = s.AvatarUrl,
-                CreatedAt = s.CreatedAt,
-                UpdatedAt = s.UpdatedAt,
-                LastLogin = s.LastLogin,
+                AvatarUrl = s.AvatarUrl
             }).ToList();
         }
 
@@ -71,10 +68,7 @@ namespace HotelManagementAPI.Controllers
                 Phone = Staff.Phone,
                 Position = Staff.Position,
                 Status = Staff.Status,
-                AvatarUrl = Staff.AvatarUrl,
-                CreatedAt = Staff.CreatedAt,
-                UpdatedAt = Staff.UpdatedAt,
-                LastLogin = Staff.LastLogin,
+                AvatarUrl = Staff.AvatarUrl
             };
         }
 
@@ -101,15 +95,13 @@ namespace HotelManagementAPI.Controllers
                 Position = createStaffDTO.Position,
                 Status = createStaffDTO.Status ?? "Đang làm việc",
                 AvatarUrl = createStaffDTO.AvatarUrl,
-                Password = HashPassword(createStaffDTO.Password),
-                CreatedAt = DateTime.UtcNow // Tự động gán ngày tạo
+                Password = HashPassword(createStaffDTO.Password) // Mã hóa mật khẩu trước khi lưu
             };
 
             _context.Staffs.Add(Staff);
             await _context.SaveChangesAsync();
 
-            // Ánh xạ lại DTO để trả về
-            var resultDto = new StaffDTO
+            return CreatedAtAction(nameof(GetStaff), new { id = Staff.Id }, new StaffDTO
             {
                 Id = Staff.Id,
                 StaffCode = Staff.StaffCode,
@@ -119,11 +111,8 @@ namespace HotelManagementAPI.Controllers
                 Phone = Staff.Phone,
                 Position = Staff.Position,
                 Status = Staff.Status,
-                AvatarUrl = Staff.AvatarUrl,
-                CreatedAt = Staff.CreatedAt
-            };
-
-            return CreatedAtAction(nameof(GetStaff), new { id = Staff.Id }, resultDto);
+                AvatarUrl = Staff.AvatarUrl
+            });
         }
 
         // PUT: api/Staff/5
@@ -143,7 +132,6 @@ namespace HotelManagementAPI.Controllers
             Staff.Position = updateStaffDTO.Position;
             Staff.Status = updateStaffDTO.Status;
             Staff.AvatarUrl = updateStaffDTO.AvatarUrl;
-            Staff.UpdatedAt = DateTime.UtcNow; // Tự động cập nhật ngày
 
             try
             {
@@ -227,10 +215,6 @@ namespace HotelManagementAPI.Controllers
             {
                 return Unauthorized("Sai tài khoản hoặc mật khẩu");
             }
-
-            // Cập nhật LastLogin
-            Staff.LastLogin = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
 
             var token = GenerateJwtToken(Staff.Id, Staff.StaffCode, "Staff");
             return Ok(new { token });

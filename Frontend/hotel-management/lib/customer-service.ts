@@ -1,8 +1,8 @@
-import { post, get, put, del } from './api';
+import { api } from './api';
 
-// Định nghĩa kiểu dữ liệu cho một khách hàng
+// Định nghĩa kiểu dữ liệu cho khách hàng
 export interface CustomerData {
-  id: string;
+  id: string; // Backend dùng int nhưng frontend có thể dùng string để đơn giản
   customerCode: string;
   userName: string;
   email: string;
@@ -11,42 +11,42 @@ export interface CustomerData {
   address?: string;
 }
 
-// Định nghĩa kiểu dữ liệu cho việc tạo/cập nhật khách hàng
-export type CustomerUpsertDTO = Omit<CustomerData, 'id' | 'customerCode'>;
+// DTO cho việc tạo và cập nhật
+export type CustomerUpsertDTO = Omit<CustomerData, 'id'>;
 
-const API_ENDPOINT = '/Customers';
 
-// Lấy danh sách tất cả khách hàng
+// Các hàm gọi API cho Customers
 export async function getCustomers(): Promise<CustomerData[]> {
-  const response = await get<CustomerData[]>(API_ENDPOINT);
+  const response = await api.get<CustomerData[]>('/Customers');
   return response.data;
 }
 
-// Tạo khách hàng mới
+export async function getCustomerById(id: string): Promise<CustomerData> {
+  const response = await api.get<CustomerData>(`/Customers/${id}`);
+  return response.data;
+}
+
 export async function createCustomer(data: CustomerUpsertDTO): Promise<CustomerData> {
-  const response = await post<CustomerData>(API_ENDPOINT, data);
+  const response = await api.post<CustomerData>('/Customers', data);
   return response.data;
 }
 
-// Cập nhật thông tin khách hàng
 export async function updateCustomer(id: string, data: CustomerUpsertDTO): Promise<void> {
-  await put(`${API_ENDPOINT}/${id}`, data);
+  await api.put<void>(`/Customers/${id}`, data);
 }
 
-// Xóa khách hàng
 export async function deleteCustomer(id: string): Promise<void> {
-  await del(`${API_ENDPOINT}/${id}`);
+  await api.delete<void>(`/Customers/${id}`);
 }
 
-// Tìm kiếm khách hàng (ví dụ, API hỗ trợ /Customer/search?query=...)
-// Nếu API không hỗ trợ, chúng ta sẽ lọc ở client-side.
+// Hàm tìm kiếm khách hàng theo tên hoặc số điện thoại
 export async function searchCustomers(query: string): Promise<CustomerData[]> {
-    const response = await get<CustomerData[]>(`${API_ENDPOINT}/search`, { params: { query } });
-    return response.data;
+  const response = await api.get<CustomerData[]>(`/Customers/search?query=${encodeURIComponent(query)}`);
+  return response.data;
 }
 
 // Hàm lấy lịch sử đặt phòng của khách hàng
 export async function getCustomerBookingHistory(customerId: string): Promise<any[]> {
-  const response = await get<any[]>(`/Customers/${customerId}/bookings`);
+  const response = await api.get<any[]>(`/Customers/${customerId}/bookings`);
   return response.data;
 } 
