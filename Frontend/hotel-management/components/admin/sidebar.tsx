@@ -27,7 +27,7 @@ const adminMenuItems: SidebarMenuItem[] = [
   { href: "/admin/invoices", label: "Hóa đơn", icon: CreditCard },
   { href: "/admin/customers", label: "Khách hàng", icon: Users },
   { href: "/admin/events", label: "Sự kiện", icon: Camera },
-  { href: "/admin/staff", label: "Quản lý nhân viên", icon: UserCog, feature: "user-management" },
+  { href: "/admin/staff", label: "Quản lý nhân viên", icon: UserCog },
   { href: "/admin/settings", label: "Cài đặt hệ thống", icon: Settings, feature: "system-settings" },
 ]
 

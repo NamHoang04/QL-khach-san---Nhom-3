@@ -33,6 +33,7 @@ CREATE TABLE rooms (
 -- Bảng khách hàng
 CREATE TABLE Customers (
     id INT IDENTITY(1,1) PRIMARY KEY,
+    full_name NVARCHAR(100) NOT NULL,
     Customer_code NVARCHAR(10) NOT NULL UNIQUE,
     UserName NVARCHAR(100) NOT NULL,
     email NVARCHAR(100),

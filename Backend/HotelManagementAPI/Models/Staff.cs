@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -11,8 +12,13 @@ namespace HotelManagementAPI.Models
         
         [Required]
         [StringLength(10)]
-        [Column("Staff_code")]
+        [Column("staff_code")]
         public string StaffCode { get; set; } = string.Empty;
+        
+        [Required]
+        [StringLength(50)]
+        [Column("fullname")]
+        public string FullName { get; set; } = string.Empty;
         
         [Required]
         [StringLength(100)]
@@ -42,5 +48,15 @@ namespace HotelManagementAPI.Models
         [StringLength(255)]
         [Column("password")]
         public string Password { get; set; } = string.Empty;
+
+        [Required]
+        [Column("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [Column("updated_at")]
+        public DateTime? UpdatedAt { get; set; }
+
+        [Column("last_login")]
+        public DateTime? LastLogin { get; set; }
     }
 }

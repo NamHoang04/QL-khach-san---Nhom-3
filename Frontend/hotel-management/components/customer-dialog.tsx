@@ -1,116 +1,142 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
 import { CustomerData, CustomerUpsertDTO } from "@/lib/customer-service"
+
+// Validation schema
+const formSchema = z.object({
+  userName: z.string().min(1, "Họ tên là bắt buộc"),
+  email: z.string().email("Email không hợp lệ"),
+  phone: z.string().min(1, "Số điện thoại là bắt buộc"),
+  address: z.string().min(1, "Địa chỉ là bắt buộc"),
+  identityNumber: z.string().min(1, "CCCD/CMND là bắt buộc"),
+});
 
 interface CustomerDialogProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: CustomerUpsertDTO) => Promise<void>
+  onSave: (data: CustomerUpsertDTO) => void
   customer: CustomerData | null
 }
 
 export function CustomerDialog({ isOpen, onClose, onSave, customer }: CustomerDialogProps) {
-  const [formData, setFormData] = useState<CustomerUpsertDTO>({
-    customerCode: '',
-    userName: '',
-    email: '',
-    phone: '',
-    identityNumber: '',
-    address: ''
+  const form = useForm<CustomerUpsertDTO>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      userName: "",
+      email: "",
+      phone: "",
+      address: "",
+      identityNumber: "",
+    },
   })
-  const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
     if (customer) {
-      setFormData({
-        customerCode: customer.customerCode,
-        userName: customer.userName,
-        email: customer.email,
-        phone: customer.phone,
-        identityNumber: customer.identityNumber || '',
-        address: customer.address || ''
-      })
+      form.reset(customer)
     } else {
-      setFormData({
-        customerCode: '',
-        userName: '',
-        email: '',
-        phone: '',
-        identityNumber: '',
-        address: ''
+      form.reset({
+        userName: "",
+        email: "",
+        phone: "",
+        address: "",
+        identityNumber: "",
       })
     }
-    setErrors({})
-  }, [customer, isOpen])
+  }, [customer, form, isOpen])
 
-  const validate = () => {
-    const newErrors: { [key: string]: string } = {}
-    if (!formData.customerCode.trim()) newErrors.customerCode = "Mã khách hàng là bắt buộc."
-    if (!formData.userName.trim()) newErrors.userName = "Tên khách hàng là bắt buộc."
-    if (!formData.phone.trim()) newErrors.phone = "Số điện thoại là bắt buộc."
-    if (!formData.email.trim() || !/^\S+@\S+\.\S+$/.test(formData.email)) {
-        newErrors.email = "Email không hợp lệ."
-    }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async () => {
-    if (!validate()) {
-      toast.error("Vui lòng điền đúng và đủ các thông tin bắt buộc.")
-      return
-    }
-    await onSave(formData)
+  const onSubmit = (data: CustomerUpsertDTO) => {
+    onSave(data)
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{customer ? "Chỉnh sửa Khách hàng" : "Thêm Khách hàng mới"}</DialogTitle>
+          <DialogTitle>{customer ? "Chỉnh sửa khách hàng" : "Thêm khách hàng mới"}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="customerCode" className="text-right">Mã KH</Label>
-            <Input id="customerCode" value={formData.customerCode} onChange={(e) => setFormData({...formData, customerCode: e.target.value})} className="col-span-3" />
-            {errors.customerCode && <p className="col-span-4 text-red-500 text-xs text-right">{errors.customerCode}</p>}
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="userName" className="text-right">Họ Tên</Label>
-            <Input id="userName" value={formData.userName} onChange={(e) => setFormData({...formData, userName: e.target.value})} className="col-span-3" />
-            {errors.userName && <p className="col-span-4 text-red-500 text-xs text-right">{errors.userName}</p>}
-          </div>
-           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">Email</Label>
-            <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="col-span-3" />
-             {errors.email && <p className="col-span-4 text-red-500 text-xs text-right">{errors.email}</p>}
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="phone" className="text-right">SĐT</Label>
-            <Input id="phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="col-span-3" />
-             {errors.phone && <p className="col-span-4 text-red-500 text-xs text-right">{errors.phone}</p>}
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="identityNumber" className="text-right">CCCD/CMND</Label>
-            <Input id="identityNumber" value={formData.identityNumber || ''} onChange={(e) => setFormData({...formData, identityNumber: e.target.value})} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="address" className="text-right">Địa chỉ</Label>
-            <Input id="address" value={formData.address || ''} onChange={(e) => setFormData({...formData, address: e.target.value})} className="col-span-3" />
-          </div>
-        </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="secondary">Hủy</Button>
-          </DialogClose>
-          <Button type="submit" onClick={handleSubmit}>Lưu</Button>
-        </DialogFooter>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="userName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Họ và tên</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nguyễn Văn A" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="example@email.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Số điện thoại</FormLabel>
+                  <FormControl>
+                    <Input placeholder="0123456789" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="identityNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CCCD/CMND</FormLabel>
+                  <FormControl>
+                    <Input placeholder="123456789012" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Địa chỉ</FormLabel>
+                  <FormControl>
+                    <Input placeholder="123 Đường ABC, Quận XYZ" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="secondary">Hủy</Button>
+              </DialogClose>
+              <Button type="submit">Lưu</Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

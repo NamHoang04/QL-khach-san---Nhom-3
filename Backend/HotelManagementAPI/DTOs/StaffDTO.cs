@@ -4,18 +4,23 @@ namespace HotelManagementAPI.DTOs
     {
         public int Id { get; set; }
         public string StaffCode { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string? Phone { get; set; }
         public string? Position { get; set; }
         public string? Status { get; set; }
         public string? AvatarUrl { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public DateTime? LastLogin { get; set; }
         public string Password { get; set; } = string.Empty;
     }
 
     public class CreateStaffDTO
     {
         public string StaffCode { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string? Phone { get; set; }
@@ -27,6 +32,7 @@ namespace HotelManagementAPI.DTOs
 
     public class UpdateStaffDTO
     {
+        public string FullName { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string? Phone { get; set; }
