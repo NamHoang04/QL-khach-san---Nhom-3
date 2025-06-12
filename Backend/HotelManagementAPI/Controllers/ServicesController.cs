@@ -9,7 +9,7 @@ namespace HotelManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin,Staff,janitor")]
+    [Authorize(Roles = "Admin,Staff,janitor,Customer")]
     public class ServicesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -109,7 +109,7 @@ namespace HotelManagementAPI.Controllers
 
             return NoContent();
         }
-
+        
         // DELETE: api/Services/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteService(int id)

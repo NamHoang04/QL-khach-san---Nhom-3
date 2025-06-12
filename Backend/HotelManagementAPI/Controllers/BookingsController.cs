@@ -45,6 +45,42 @@ namespace HotelManagementAPI.Controllers
             }).ToList();
         }
 
+        // GET: api/Bookings/my-bookings
+        [HttpGet("my-bookings")]
+        public async Task<ActionResult<IEnumerable<BookingDTO>>> GetMyBookings()
+        {
+            var username = User.Identity.Name;
+           var customer = await _context.Customers.FirstOrDefaultAsync(u => u.UserName == username);
+
+            if (customer == null)
+            {
+                return Unauthorized();
+            }
+
+            var bookings = await _context.Bookings
+                .Where(b => b.CustomerId == customer.Id)
+                .Include(b => b.Customer)
+                .Include(b => b.Room)
+                .ThenInclude(r => r.RoomType)
+                .OrderByDescending(b => b.CheckIn)
+                .ToListAsync();
+
+            return bookings.Select(b => new BookingDTO
+            {
+                Id = b.Id,
+                BookingCode = b.BookingCode,
+                CustomerId = b.CustomerId,
+                RoomId = b.RoomId,
+                CheckIn = b.CheckIn,
+                CheckOut = b.CheckOut,
+                Status = b.Status,
+                CustomerName = b.Customer?.UserName,
+                CustomerEmail = b.Customer?.Email,
+                RoomNumber = b.Room?.RoomNumber,
+                RoomTypeName = b.Room?.RoomType?.Name
+            }).ToList();
+        }
+
         // GET: api/Bookings/5
         [HttpGet("{id}")]
         public async Task<ActionResult<BookingDTO>> GetBooking(int id)
@@ -114,7 +150,7 @@ namespace HotelManagementAPI.Controllers
                 RoomId = createBookingDTO.RoomId,
                 CheckIn = createBookingDTO.CheckIn,
                 CheckOut = createBookingDTO.CheckOut,
-                Status = createBookingDTO.Status ?? "Pending"
+                Status = createBookingDTO.Status ?? "Pending",
             };
 
             _context.Bookings.Add(booking);

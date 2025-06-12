@@ -53,7 +53,7 @@ export function Sidebar() {
 
   const routes = [
     {
-      href: "/customer",
+      href: "/customer/dashboard",
       label: "Trang chủ",
       icon: Home,
     },

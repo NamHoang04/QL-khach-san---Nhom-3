@@ -111,8 +111,8 @@ export default function AdminManageBookingServicesPage() {
 
   const isDirty = useMemo(() => {
     if (initialServices.length !== selectedServices.length) return true;
-    const sortedInitial = [...initialServices].sort((a, b) => a.serviceId.localeCompare(b.serviceId));
-    const sortedCurrent = [...selectedServices].sort((a, b) => a.serviceId.localeCompare(b.serviceId));
+    const sortedInitial = [...initialServices].sort((a, b) => Number(a.serviceId) - Number(b.serviceId));
+    const sortedCurrent = [...selectedServices].sort((a, b) => Number(a.serviceId) - Number(b.serviceId));
     return sortedInitial.some((service, index) => {
         const currentService = sortedCurrent[index];
         return service.serviceId !== currentService.serviceId || service.quantity !== currentService.quantity;

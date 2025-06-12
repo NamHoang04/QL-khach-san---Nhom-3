@@ -13,12 +13,12 @@ export interface Booking {
     note?: string;
     customerId: string;
     customerName: string;
-    customerEmail?: string;
+    customerEmail: string;
     staffId?: string;
     staffName?: string;
     roomId: number;
-    roomName: string;
-    roomNumber?: string;
+    roomTypeName: string;
+    roomNumber: string;
 }
 
 // DTO cho việc tạo và cập nhật

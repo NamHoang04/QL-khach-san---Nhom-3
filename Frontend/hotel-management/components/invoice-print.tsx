@@ -103,8 +103,8 @@ const InvoicePrintContent = forwardRef<HTMLDivElement, { invoice: Invoice }>(fun
     return services.reduce((acc, item) => acc + item.amount, 0);
   };
   
-  const subtotal = getSubtotal(invoice.services);
-  const tax = subtotal * 0.08; // Assuming a fixed 8% tax rate
+  const servicesSubtotal = getSubtotal(invoice.services);
+  const roomCost = invoice.totalAmount - servicesSubtotal;
 
   return (
     <div ref={ref} className="p-8 bg-white">
@@ -147,9 +147,16 @@ const InvoicePrintContent = forwardRef<HTMLDivElement, { invoice: Invoice }>(fun
             </tr>
           </thead>
           <tbody>
+            <tr className="border-t border-gray-200">
+              <td className="py-3 px-4">1</td>
+              <td className="py-3 px-4 font-medium">Tiền thuê phòng ({invoice.roomNumber})</td>
+              <td className="py-3 px-4 text-center">-</td>
+              <td className="py-3 px-4 text-right">-</td>
+              <td className="py-3 px-4 text-right">{formatCurrency(roomCost)}</td>
+            </tr>
             {invoice.services?.map((item, index) => (
               <tr key={item.id} className="border-t border-gray-200">
-                <td className="py-3 px-4">{index + 1}</td>
+                <td className="py-3 px-4">{index + 2}</td>
                 <td className="py-3 px-4">{item.serviceName}</td>
                 <td className="py-3 px-4 text-center">{item.quantity}</td>
                 <td className="py-3 px-4 text-right">{formatCurrency(item.price)}</td>
@@ -163,14 +170,6 @@ const InvoicePrintContent = forwardRef<HTMLDivElement, { invoice: Invoice }>(fun
       <div className="py-4 border-t border-gray-200">
         <div className="flex justify-end">
           <div className="w-72">
-            <div className="flex justify-between py-2">
-              <span className="font-medium">Tạm tính:</span>
-              <span>{formatCurrency(subtotal)}</span>
-            </div>
-            <div className="flex justify-between py-2">
-              <span className="font-medium">Thuế VAT (8%):</span>
-              <span>{formatCurrency(tax)}</span>
-            </div>
             <div className="flex justify-between py-2 text-lg font-bold">
               <span>Tổng cộng:</span>
               <span>{formatCurrency(invoice.totalAmount)}</span>

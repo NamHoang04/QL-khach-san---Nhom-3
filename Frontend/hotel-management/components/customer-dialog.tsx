@@ -20,6 +20,7 @@ interface CustomerDialogProps {
 
 export function CustomerDialog({ isOpen, onClose, onSave, customer, isSaving, serverErrors }: CustomerDialogProps) {
   const [formData, setFormData] = useState<Partial<CustomerUpsertDTO>>({
+    customerCode: '',
     userName: '',
     fullName: '',
     email: '',
@@ -33,8 +34,9 @@ export function CustomerDialog({ isOpen, onClose, onSave, customer, isSaving, se
   useEffect(() => {
     if (customer) {
       setFormData({
+        customerCode: customer.customerCode,
         userName: customer.userName,
-        fullName: customer.fullName || customer.userName,
+        fullName: customer.fullName,
         email: customer.email,
         phone: customer.phone,
         identityNumber: customer.identityNumber || '',
@@ -43,6 +45,7 @@ export function CustomerDialog({ isOpen, onClose, onSave, customer, isSaving, se
       })
     } else {
       setFormData({
+        customerCode: '',
         userName: '',
         fullName: '',
         email: '',
@@ -63,6 +66,7 @@ export function CustomerDialog({ isOpen, onClose, onSave, customer, isSaving, se
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {}
+    if (!formData.customerCode?.trim()) newErrors.customerCode = "Mã khách hàng là bắt buộc.";
     if (!formData.fullName?.trim()) newErrors.fullName = "Họ tên đầy đủ là bắt buộc."
     if (!formData.userName?.trim()) newErrors.userName = "Tên đăng nhập là bắt buộc."
     if (!customer && !formData.password) { // Password is required only for new customers
@@ -92,7 +96,19 @@ export function CustomerDialog({ isOpen, onClose, onSave, customer, isSaving, se
       toast.error("Vui lòng điền đúng và đủ các thông tin bắt buộc.")
       return
     }
-    await onSave(formData as CustomerUpsertDTO)
+
+    const dataToSave: CustomerUpsertDTO = {
+      customerCode: formData.customerCode || "",
+      fullName: formData.fullName || "",
+      userName: formData.userName || "",
+      email: formData.email || "",
+      phone: formData.phone || "",
+      identityNumber: formData.identityNumber || undefined,
+      address: formData.address || undefined,
+      password: formData.password || undefined,
+    };
+    
+    await onSave(dataToSave)
   }
 
   return (
@@ -102,6 +118,13 @@ export function CustomerDialog({ isOpen, onClose, onSave, customer, isSaving, se
           <DialogTitle>{customer ? "Chỉnh sửa Khách hàng" : "Thêm Khách hàng mới"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          
+          <h3 className="text-md font-semibold text-gray-700">Thông tin cá nhân</h3>
+          <div>
+              <Label htmlFor="customerCode">Mã khách hàng</Label>
+              <Input id="customerCode" value={formData.customerCode || ''} onChange={(e) => handleInputChange('customerCode', e.target.value)} disabled={!!customer} />
+              {errors.customerCode && <p className="text-red-500 text-xs mt-1">{errors.customerCode}</p>}
+            </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="fullName">Họ và Tên</Label>
@@ -120,10 +143,21 @@ export function CustomerDialog({ isOpen, onClose, onSave, customer, isSaving, se
               <Input id="email" type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+             <div>
+              <Label htmlFor="identityNumber">CCCD/CMND</Label>
+              <Input id="identityNumber" value={formData.identityNumber || ''} onChange={(e) => handleInputChange('identityNumber', e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="address">Địa chỉ</Label>
+              <Input id="address" value={formData.address || ''} onChange={(e) => handleInputChange('address', e.target.value)} />
+            </div>
+          </div>
           
           <Separator className="my-4" />
-          <h3 className="text-md font-semibold text-gray-700">Thông tin đăng nhập</h3>
 
+          <h3 className="text-md font-semibold text-gray-700">Thông tin tài khoản</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="userName">Tên đăng nhập</Label>
@@ -135,18 +169,6 @@ export function CustomerDialog({ isOpen, onClose, onSave, customer, isSaving, se
               <Input id="password" type="password" placeholder={customer ? "Để trống nếu không đổi" : ""} onChange={(e) => handleInputChange('password', e.target.value)} />
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
-          </div>
-          
-           <Separator className="my-4" />
-           <h3 className="text-md font-semibold text-gray-700">Thông tin bổ sung</h3>
-
-          <div>
-            <Label htmlFor="identityNumber">CCCD/CMND</Label>
-            <Input id="identityNumber" value={formData.identityNumber || ''} onChange={(e) => handleInputChange('identityNumber', e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="address">Địa chỉ</Label>
-            <Input id="address" value={formData.address || ''} onChange={(e) => handleInputChange('address', e.target.value)} />
           </div>
         </div>
         <DialogFooter>

@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { jwtDecode } from 'jwt-decode';
 
 // Các đường dẫn công khai không cần xác thực
-const publicPaths = ['/login', '/register', '/forgot-password'];
+const publicPaths = ['/', '/login', '/register', '/forgot-password'];
 
 // Các đường dẫn được bảo vệ theo role
 const protectedPaths = {

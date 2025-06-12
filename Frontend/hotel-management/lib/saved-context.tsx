@@ -1,200 +1,213 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react"
 import { useAuth } from "./auth-context"
 import { toast } from "sonner"
 
-// Types for saved items
+// Mock data
+const mockSavedRooms: SavedRoom[] = [
+  {
+    id: 1,
+    customerId: 1,
+    roomId: 101,
+    room: {
+      id: 101,
+      roomNumber: "101",
+      roomType: {
+        id: 1,
+        name: "Phòng Deluxe Giường Đôi",
+        price: 2500000,
+        capacity: 2,
+        description: "Phòng rộng rãi với tầm nhìn ra thành phố, được trang bị đầy đủ tiện nghi hiện đại.",
+        image: "/images/rooms/deluxe.jpg",
+      },
+    },
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    customerId: 1,
+    roomId: 202,
+    room: {
+      id: 202,
+      roomNumber: "202",
+      roomType: {
+        id: 2,
+        name: "Suite Cao Cấp Hướng Biển",
+        price: 4500000,
+        capacity: 4,
+        description: "Suite sang trọng với ban công riêng nhìn ra biển, phòng khách riêng biệt.",
+        image: "/images/rooms/suite.jpg",
+      },
+    },
+    createdAt: new Date().toISOString(),
+  },
+];
+
+const mockSavedServices: SavedService[] = [
+  {
+    id: 1,
+    customerId: 1,
+    serviceId: 1,
+    service: {
+      id: 1,
+      name: "Bữa Tối Lãng Mạn Tại Bãi Biển",
+      price: 1800000,
+      description: "Thưởng thức bữa tối riêng tư dưới ánh nến với các món hải sản tươi ngon.",
+      category: "food",
+      imageUrl: "/images/services/dinner.jpg",
+      isFixedQuantity: true,
+    },
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    customerId: 1,
+    serviceId: 2,
+    service: {
+      id: 2,
+      name: "Tour Tham Quan Đảo Bằng Cano",
+      price: 1200000,
+      description: "Khám phá các hòn đảo hoang sơ và lặn ngắm san hô trong một ngày.",
+      category: "transport",
+      imageUrl: "/images/services/tour.jpg",
+      isFixedQuantity: false,
+    },
+    createdAt: new Date().toISOString(),
+  },
+];
+
+// Types for saved items from API
 export interface SavedRoom {
   id: number
+  customerId: number
   roomId: number
+  room: {
+    id: number
   roomNumber: string
-  roomType: string
+    roomType: {
+      id: number
+      name: string
   price: number
-  imageUrl?: string
-  description?: string
   capacity: number
-  savedAt: string
+      description: string
+      image: string
+    }
+  }
+  createdAt: string
 }
 
 export interface SavedService {
   id: number
+  customerId: number
   serviceId: number
-  serviceName: string
+  service: {
+    id: number
+    name: string
   price: number
+    description: string
   category: string
-  imageUrl?: string
-  description?: string
-  savedAt: string
-  isFixedQuantity?: boolean
+    imageUrl: string
+    isFixedQuantity: boolean
+  }
+  createdAt: string
 }
 
 interface SavedContextType {
   savedRooms: SavedRoom[]
   savedServices: SavedService[]
   loading: boolean
-  saveRoom: (room: any) => void
-  saveService: (service: any) => void
-  removeRoom: (roomId: number) => void
-  removeService: (serviceId: number) => void
+  saveRoom: (room: any) => Promise<void>
+  saveService: (service: any) => Promise<void>
+  removeRoom: (roomId: number, isFavoriteId?: boolean) => Promise<void>
+  removeService: (serviceId: number, isFavoriteId?: boolean) => Promise<void>
   isSavedRoom: (roomId: number) => boolean
   isSavedService: (serviceId: number) => boolean
+  refetchSavedItems: () => void
 }
 
 const SavedContext = createContext<SavedContextType | undefined>(undefined)
 
 export const SavedProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [savedRooms, setSavedRooms] = useState<SavedRoom[]>([])
   const [savedServices, setSavedServices] = useState<SavedService[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Load saved items from localStorage on initial render
+  const fetchSavedItems = useCallback(async () => {
+    setLoading(true);
+    // Use mock data instead of fetching
+    setTimeout(() => {
+      setSavedRooms(mockSavedRooms);
+      setSavedServices(mockSavedServices);
+      setLoading(false);
+    }, 500); // Simulate network delay
+  }, [])
+
   useEffect(() => {
-    const loadSavedItems = () => {
-      setLoading(true)
-      try {
-        // Get saved rooms from localStorage
-        const savedRoomsData = localStorage.getItem('saved_rooms')
-        if (savedRoomsData) {
-          setSavedRooms(JSON.parse(savedRoomsData))
-        }
+    fetchSavedItems()
+  }, [fetchSavedItems])
 
-        // Get saved services from localStorage
-        const savedServicesData = localStorage.getItem('saved_services')
-        if (savedServicesData) {
-          setSavedServices(JSON.parse(savedServicesData))
-        }
-      } catch (error) {
-        console.error("Error loading saved items:", error)
-      } finally {
-        setLoading(false)
-      }
+  const saveRoom = async (room: any) => {
+    if (isSavedRoom(room.id)) {
+      toast.info("Phòng này đã có trong danh sách yêu thích của bạn.");
+      return;
     }
-
-    loadSavedItems()
-  }, [user?.id])
-
-  // Save a room to favorites
-  const saveRoom = (room: any) => {
-    // Create a saved room object
-    const savedRoom: SavedRoom = {
-      id: Date.now(), // Generate a unique ID
+    const newSavedRoom: SavedRoom = {
+      id: Date.now(),
+      customerId: 1, // Mock customer ID
       roomId: room.id,
-      roomNumber: room.roomNumber || `${room.id}`,
-      roomType: room.name || room.type || "Room",
-      price: room.price,
-      imageUrl: room.imageUrl || room.image,
-      description: room.description,
-      capacity: room.capacity || 2,
-      savedAt: new Date().toISOString()
-    }
-
-    // Update state
-    setSavedRooms(prev => {
-      // Check if room is already saved
-      const isAlreadySaved = prev.some(item => item.roomId === room.id)
-      if (isAlreadySaved) {
-        return prev
-      }
-      const newSavedRooms = [...prev, savedRoom]
-      
-      // Save to localStorage
-      localStorage.setItem('saved_rooms', JSON.stringify(newSavedRooms))
-      
-      // Show toast notification
-      toast.success("Đã lưu phòng vào danh sách yêu thích")
-      
-      return newSavedRooms
-    })
+      room: {
+        id: room.id,
+        roomNumber: room.roomNumber,
+        roomType: room.roomType
+      },
+      createdAt: new Date().toISOString(),
+    };
+    setSavedRooms(prev => [...prev, newSavedRoom]);
+    toast.success("Đã lưu phòng vào danh sách yêu thích");
   }
 
-  // Save a service to favorites
-  const saveService = (service: any) => {
-    // Create a saved service object
-    const savedService: SavedService = {
-      id: Date.now(), // Generate a unique ID
+  const saveService = async (service: any) => {
+    if (isSavedService(service.id)) {
+      toast.info("Dịch vụ này đã có trong danh sách yêu thích của bạn.");
+      return;
+    }
+     const newSavedService: SavedService = {
+        id: Date.now(),
+        customerId: 1, // Mock customer ID
       serviceId: service.id,
-      serviceName: service.name || service.serviceName,
-      price: service.price,
-      category: service.category || "other",
-      imageUrl: service.imageUrl || service.image,
-      description: service.description,
-      savedAt: new Date().toISOString(),
-      isFixedQuantity: service.isFixedQuantity
-    }
-
-    // Update state
-    setSavedServices(prev => {
-      // Check if service is already saved
-      const isAlreadySaved = prev.some(item => item.serviceId === service.id)
-      if (isAlreadySaved) {
-        return prev
-      }
-      const newSavedServices = [...prev, savedService]
-      
-      // Save to localStorage
-      localStorage.setItem('saved_services', JSON.stringify(newSavedServices))
-      
-      // Show toast notification
-      toast.success("Đã lưu dịch vụ vào danh sách yêu thích")
-      
-      return newSavedServices
-    })
+        service: {
+          id: service.id,
+          name: service.name || 'Dịch vụ không tên',
+          price: service.price || 0,
+          description: service.description || '',
+          category: service.category || 'general',
+          imageUrl: service.imageUrl || '',
+          isFixedQuantity: service.isFixedQuantity || false,
+        },
+        createdAt: new Date().toISOString(),
+      };
+    setSavedServices(prev => [...prev, newSavedService]);
+    toast.success("Đã lưu dịch vụ vào danh sách yêu thích");
   }
 
-  // Remove a room from favorites
-  const removeRoom = (roomId: number) => {
-    setSavedRooms(prev => {
-      // Filter to keep rooms that don't match the one being removed
-      const newSavedRooms = prev.filter(room => {
-        // Convert both IDs to strings for consistent comparison
-        return room.roomId.toString() !== roomId.toString();
-      });
-      
-      // Save to localStorage
-      localStorage.setItem('saved_rooms', JSON.stringify(newSavedRooms))
-      
-      // Show toast notification
+  const removeRoom = async (roomId: number) => {
+    setSavedRooms(prev => prev.filter(r => r.room.id !== roomId))
       toast.success("Đã xóa phòng khỏi danh sách yêu thích")
-      
-      return newSavedRooms
-    })
   }
 
-  // Remove a service from favorites
-  const removeService = (serviceId: number) => {
-    setSavedServices(prev => {
-      // Filter to keep services that don't match the one being removed
-      const newSavedServices = prev.filter(service => {
-        // Convert both IDs to strings for consistent comparison
-        return service.serviceId.toString() !== serviceId.toString();
-      });
-      
-      // Save to localStorage
-      localStorage.setItem('saved_services', JSON.stringify(newSavedServices))
-      
-      // Show toast notification
+  const removeService = async (serviceId: number) => {
+    setSavedServices(prev => prev.filter(s => s.service.id !== serviceId))
       toast.success("Đã xóa dịch vụ khỏi danh sách yêu thích")
-      
-      return newSavedServices
-    })
   }
 
-  // Check if a room is saved
   const isSavedRoom = (roomId: number): boolean => {
-    // Convert to string for consistent comparison
-    return savedRooms.some(room => room.roomId.toString() === roomId.toString());
+    return savedRooms.some(r => r.room.id === roomId)
   }
 
-  // Check if a service is saved
   const isSavedService = (serviceId: number): boolean => {
-    // Also account for type conversions between string and number representations
-    return savedServices.some(service => 
-      service.serviceId === serviceId || 
-      service.serviceId === Number(serviceId) || 
-      service.serviceId.toString() === serviceId.toString()
-    );
+    return savedServices.some(s => s.service.id === serviceId)
   }
 
   const value = {
@@ -206,7 +219,8 @@ export const SavedProvider = ({ children }: { children: ReactNode }) => {
     removeRoom,
     removeService,
     isSavedRoom,
-    isSavedService
+    isSavedService,
+    refetchSavedItems: fetchSavedItems
   }
 
   return (

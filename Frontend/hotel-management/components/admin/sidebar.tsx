@@ -24,7 +24,7 @@ const adminMenuItems: SidebarMenuItem[] = [
   { href: "/admin/rooms", label: "Danh sách phòng", icon: Key },
   { href: "/admin/room-types", label: "Loại phòng", icon: LayoutGrid},
   { href: "/admin/services", label: "Dịch vụ", icon: BarChart3 },
-  { href: "/admin/booking-services", label: "Đặt dịch vụ", icon: FileText },
+  // { href: "/admin/booking-services", label: "Đặt dịch vụ", icon: FileText },
   { href: "/admin/invoices", label: "Hóa đơn", icon: CreditCard },
   { href: "/admin/customers", label: "Khách hàng", icon: Users },
   { href: "/admin/events", label: "Sự kiện", icon: Camera },

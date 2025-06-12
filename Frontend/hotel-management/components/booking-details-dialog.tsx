@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Booking, updateBooking } from "@/lib/booking-service"
+import { Booking, updateBooking, BookingUpsertDTO } from "@/lib/booking-service"
 import { toast } from "sonner"
+import { useState } from "react"
 
 interface BookingDetailsDialogProps {
   isOpen: boolean
@@ -47,31 +48,34 @@ const getStatusBadge = (status: string) => {
 
 export function BookingDetailsDialog({ isOpen, onClose, onEdit, onBookingUpdate, booking, roomName }: BookingDetailsDialogProps) {
   const router = useRouter();
+  const [isUpdating, setIsUpdating] = useState(false);
 
   if (!booking) return null
 
-  const handleCheckIn = async () => {
+  const handleStatusChange = async (status: 'CHECKED_IN' | 'CHECKED_OUT') => {
     if (!booking) return;
-    try {
-      await updateBooking(booking.id, { status: 'CheckedIn' });
-      toast.success("Đã nhận phòng thành công!");
-      onBookingUpdate();
-      onClose();
-    } catch (error) {
-      toast.error("Thao tác nhận phòng thất bại.");
-    }
-  };
+    setIsUpdating(true);
 
-  const handleCheckOut = async () => {
-    if (!booking) return;
+    const partialUpdate: Partial<BookingUpsertDTO> = { status };
+
     try {
-      await updateBooking(booking.id, { status: 'CheckedOut' });
-      toast.success("Đã trả phòng thành công! Chuyển đến trang hóa đơn.");
-      onBookingUpdate();
-      onClose();
-      router.push('/admin/invoices');
+      await updateBooking(booking.id, partialUpdate);
+      toast.success(
+        status === 'CHECKED_IN'
+          ? "Đã nhận phòng thành công!"
+          : "Đã trả phòng thành công! Chuyển đến trang hóa đơn."
+      );
+      onBookingUpdate(); // Refresh the data in the parent component
+      onClose(); // Close the dialog
+
+      if (status === 'CHECKED_OUT') {
+        // Redirect to invoice page
+        router.push('/admin/invoices'); 
+      }
     } catch (error) {
-      toast.error("Thao tác trả phòng thất bại.");
+      toast.error(`Thao tác thất bại: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -120,15 +124,33 @@ export function BookingDetailsDialog({ isOpen, onClose, onEdit, onBookingUpdate,
             </div>
            )}
         </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>Đóng</Button>
-          {booking.status === 'Confirmed' && (
-            <Button type="button" variant="secondary" onClick={handleCheckIn}>Nhận phòng</Button>
-          )}
-          {booking.status === 'CheckedIn' && (
-            <Button type="button" variant="destructive" onClick={handleCheckOut}>Trả phòng</Button>
-          )}
-          <Button type="button" onClick={onEdit}>Chỉnh sửa</Button>
+        <DialogFooter className="sm:justify-between">
+            <div>
+                 <Button type="button" onClick={onEdit} variant="outline" disabled={isUpdating}>Chỉnh sửa</Button>
+            </div>
+            <div className="flex gap-2">
+                <Button type="button" variant="ghost" onClick={onClose} disabled={isUpdating}>Đóng</Button>
+                {booking.status.toUpperCase() === 'CONFIRMED' && (
+                    <Button 
+                        type="button" 
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => handleStatusChange('CHECKED_IN')}
+                        disabled={isUpdating}
+                    >
+                        Nhận phòng
+                    </Button>
+                )}
+                {booking.status.toUpperCase() === 'CHECKED_IN' && (
+                     <Button 
+                        type="button" 
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => handleStatusChange('CHECKED_OUT')}
+                        disabled={isUpdating}
+                    >
+                        Trả phòng & Thanh toán
+                    </Button>
+                )}
+            </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

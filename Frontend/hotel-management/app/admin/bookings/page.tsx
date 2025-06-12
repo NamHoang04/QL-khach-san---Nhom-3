@@ -5,40 +5,27 @@ import { Search, Info, Trash2, PlusCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { getBookings, deleteBooking, Booking, BookingUpsertDTO, createBooking, updateBooking } from "@/lib/booking-service"
-import { Room, getRooms, RoomType, getRoomTypes } from "@/lib/room-service"
-import { CustomerData, getCustomers } from "@/lib/customer-service"
+import { getBookings, deleteBooking, Booking } from "@/lib/booking-service"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
-import { BookingDialog } from "@/components/booking-dialog"
 import { BookingDetailsDialog } from "@/components/booking-details-dialog"
+import { NewBookingForm } from "@/components/booking-form/new-booking-form"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function AdminBookingsPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [rooms, setRooms] = useState<Room[]>([])
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
-  const [customers, setCustomers] = useState<CustomerData[]>([])
   const [loading, setLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchAllData = useCallback(async () => {
     try {
       setLoading(true)
-      const [bookingsData, roomsData, roomTypesData, customersData] = await Promise.all([
-        getBookings(),
-        getRooms(),
-        getRoomTypes(),
-        getCustomers(),
-      ])
+      const bookingsData = await getBookings()
       setBookings(bookingsData)
-      setRooms(roomsData)
-      setRoomTypes(roomTypesData)
-      setCustomers(customersData)
       setError(null)
     } catch (err: any) {
       const errorMessage = err?.data?.message || err?.message || "Lỗi kết nối đến máy chủ."
@@ -52,26 +39,6 @@ export default function AdminBookingsPage() {
   useEffect(() => {
     fetchAllData()
   }, [fetchAllData])
-
-  const handleSave = async (bookingData: BookingUpsertDTO) => {
-    setIsSaving(true);
-    try {
-      if (selectedBooking) {
-        await updateBooking(selectedBooking.id, bookingData)
-        toast.success(`Đã cập nhật đặt phòng ${selectedBooking.bookingCode}.`)
-      } else {
-        const newBooking = await createBooking(bookingData)
-        toast.success(`Đã tạo đặt phòng mới ${newBooking.bookingCode}.`)
-      }
-      fetchAllData()
-      setIsDialogOpen(false)
-    } catch (err: any) {
-        const errorMessage = err?.data?.message || err?.message || "Đã có lỗi xảy ra."
-        toast.error(`Lưu đặt phòng thất bại: ${errorMessage}`)
-    } finally {
-      setIsSaving(false);
-    }
-  }
 
   const handleDelete = async () => {
     if (!selectedBooking) return
@@ -87,11 +54,6 @@ export default function AdminBookingsPage() {
     }
   }
 
-  const openEditDialog = (booking: Booking | null = null) => {
-    setSelectedBooking(booking)
-    setIsDialogOpen(true)
-  }
-  
   const openDetailsDialog = (booking: Booking) => {
     setSelectedBooking(booking)
     setIsDetailsDialogOpen(true)
@@ -105,14 +67,9 @@ export default function AdminBookingsPage() {
   const handleEditFromDetails = () => {
     if (!selectedBooking) return;
     setIsDetailsDialogOpen(false);
-    openEditDialog(selectedBooking);
+    toast.info("Chức năng sửa đang được phát triển.")
   }
 
-  const getRoomName = (roomId: number) => {
-    const room = rooms.find(r => String(r.id) === String(roomId));
-    return room ? room.roomNumber : `Phòng ${roomId}`;
-  };
-  
   const formatCurrency = (amount?: number) => {
     if (amount === undefined || amount === null || isNaN(amount)) {
       return "N/A";
@@ -127,10 +84,11 @@ export default function AdminBookingsPage() {
     return date.toLocaleDateString('vi-VN');
   };
 
-  const filteredBookings = bookings.filter(b =>
-    b.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.bookingCode.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredBookings = bookings.filter(b => {
+    const query = searchQuery.toLowerCase();
+    return (b.roomNumber && b.roomNumber.toLowerCase().includes(query)) ||
+    (b.roomTypeName && b.roomTypeName.toLowerCase().includes(query))
+  });
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><Spinner size="large" /></div>
@@ -152,7 +110,7 @@ export default function AdminBookingsPage() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Tìm theo tên khách hoặc mã..."
+              placeholder="Tìm theo phòng, mã đặt phòng..."
               className="pl-10 pr-4 py-2 border rounded-lg w-full md:w-80"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -161,7 +119,7 @@ export default function AdminBookingsPage() {
           </div>
           <Button 
             className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-            onClick={() => openEditDialog()}
+            onClick={() => setIsFormOpen(true)}
           >
             <PlusCircle size={18} />
             Thêm đặt phòng
@@ -173,7 +131,6 @@ export default function AdminBookingsPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã Đặt phòng</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phòng</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ngày</th>
               
@@ -187,21 +144,22 @@ export default function AdminBookingsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{booking.bookingCode}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{booking.customerName}</div>
-                  </td>
                    <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{getRoomName(booking.roomId)}</div>
+                    <div className="text-sm text-gray-900">{booking.roomNumber}</div>
+                    <div className="text-sm text-gray-500">{booking.roomTypeName}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">Nhận: {formatDate(booking.checkIn)}</div>
                     <div className="text-sm text-gray-500">Trả: {formatDate(booking.checkOut)}</div>
                   </td>
-                  {/* <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{formatCurrency(booking.totalPrice)}</div>
-                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap">
-                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                       booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
+                       booking.status === 'CheckedIn' ? 'bg-blue-100 text-blue-800' :
+                       booking.status === 'CheckedOut' ? 'bg-gray-100 text-gray-800' :
+                       booking.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                       'bg-yellow-100 text-yellow-800'
+                     }`}>
                       {booking.status}
                     </span>
                   </td>
@@ -217,7 +175,7 @@ export default function AdminBookingsPage() {
               ))}
               {filteredBookings.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
                     Không tìm thấy đặt phòng nào.
                   </td>
                 </tr>
@@ -226,19 +184,20 @@ export default function AdminBookingsPage() {
           </table>
         </div>
       </div>
-
-      {isDialogOpen && (
-        <BookingDialog
-          isOpen={isDialogOpen}
-          onClose={() => setIsDialogOpen(false)}
-          onSave={handleSave}
-          booking={selectedBooking}
-          rooms={rooms}
-          roomTypes={roomTypes}
-          customers={customers}
-          isSaving={isSaving}
-        />
-      )}
+      
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Tạo Đặt phòng mới</DialogTitle>
+          </DialogHeader>
+          <NewBookingForm
+            onSaveSuccess={() => {
+              setIsFormOpen(false)
+              fetchAllData()
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       {isDetailsDialogOpen && selectedBooking && (
         <BookingDetailsDialog
@@ -247,17 +206,19 @@ export default function AdminBookingsPage() {
           onEdit={handleEditFromDetails}
           onBookingUpdate={fetchAllData}
           booking={selectedBooking}
-          roomName={getRoomName(selectedBooking.roomId)}
+          roomName={selectedBooking.roomNumber}
         />
       )}
 
-      <DeleteConfirmationDialog
-        isOpen={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleDelete}
-        title="Xác nhận xóa đặt phòng"
-        description={`Bạn có chắc chắn muốn xóa đặt phòng ${selectedBooking?.bookingCode}?`}
-      />
+      {isDeleteDialogOpen && selectedBooking && (
+        <DeleteConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={handleDelete}
+          title={`Xác nhận xóa Đặt phòng ${selectedBooking.bookingCode}`}
+          description="Bạn có chắc chắn muốn xóa đặt phòng này không? Hành động này không thể hoàn tác."
+        />
+      )}
     </div>
   )
 } 

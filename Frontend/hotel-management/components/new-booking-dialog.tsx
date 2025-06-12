@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,10 +31,12 @@ interface BookingData {
   email: string;
   checkInDate: string;
   checkOutDate: string;
+  numberOfAdults: number;
+  numberOfChildren: number;
   advancePayment: number;
   agreedPrice: number;
   note: string;
-  roomId: string; // Changed from roomType to roomId
+  roomId: string;
   status: string;
   createdAt?: string;
   updatedAt?: string;
@@ -67,6 +69,8 @@ export function NewBookingDialog({ open, onOpenChange, onSave }: NewBookingDialo
     email: "",
     checkInDate: format(today, "yyyy-MM-dd"),
     checkOutDate: format(tomorrow, "yyyy-MM-dd"),
+    numberOfAdults: 2,
+    numberOfChildren: 0,
     advancePayment: 0,
     agreedPrice: 0,
     note: "",
@@ -115,6 +119,8 @@ export function NewBookingDialog({ open, onOpenChange, onSave }: NewBookingDialo
         email: "",
         checkInDate: format(today, "yyyy-MM-dd"),
         checkOutDate: format(tomorrow, "yyyy-MM-dd"),
+        numberOfAdults: 2,
+        numberOfChildren: 0,
         advancePayment: 0,
         agreedPrice: 0,
         note: "",
@@ -245,124 +251,126 @@ export function NewBookingDialog({ open, onOpenChange, onSave }: NewBookingDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1000px] p-0 overflow-hidden border-2 border-[#369eff]">
-        <div className="bg-[#369eff] bg-opacity-10 p-8">
-          <div className="bg-white rounded-lg p-8">
-            <DialogHeader className="mb-8">
-              <DialogTitle className="text-2xl font-bold text-center text-[#369eff]">ĐẶT PHÒNG MỚI</DialogTitle>
+      <DialogContent className="max-w-5xl">
+        <DialogHeader>
+          <DialogTitle>Tạo đặt phòng mới</DialogTitle>
             </DialogHeader>
 
-            <div className="grid grid-cols-3 gap-8">
-              {/* Left Column: Booking Info */}
-              <div className="col-span-2 space-y-6">
-              <div className="grid grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 gap-2">
-                        <Label htmlFor="customerName" className="text-base text-gray-700">Tên khách hàng <span className="text-red-500">*</span></Label>
-                        <Input id="customerName" value={booking.customerName} onChange={(e) => handleChange("customerName", e.target.value)} className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10"/>
+        <ScrollArea className="max-h-[75vh] p-1">
+          <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* Middle Column (Main): Customer and Booking */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Customer Info */}
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-semibold text-lg mb-4">1. Thông tin khách hàng</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="customerName" className="text-right">Tên khách hàng</Label>
+                    <Input id="customerName" value={booking.customerName} onChange={(e) => handleChange("customerName", e.target.value)} className="col-span-3" />
                   </div>
-                  <div className="grid grid-cols-1 gap-2">
-                        <Label htmlFor="phone" className="text-base text-gray-700">Số điện thoại <span className="text-red-500">*</span></Label>
-                        <Input id="phone" value={booking.phone} onChange={(e) => handleChange("phone", e.target.value)} className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10"/>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="phone" className="text-right">Số điện thoại</Label>
+                    <Input id="phone" value={booking.phone} onChange={(e) => handleChange("phone", e.target.value)} className="col-span-3" />
                   </div>
-                  <div className="grid grid-cols-1 gap-2">
-                        <Label htmlFor="email" className="text-base text-gray-700">Email</Label>
-                        <Input id="email" type="email" value={booking.email || ""} onChange={(e) => handleChange("email", e.target.value)} className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10"/>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                        <Label htmlFor="roomId" className="text-base text-gray-700">Chọn phòng <span className="text-red-500">*</span></Label>
-                        <Select value={booking.roomId} onValueChange={(value) => handleChange("roomId", value)} disabled={isFetchingRooms}>
-                        <SelectTrigger id="roomId" className="border border-gray-400 bg-transparent rounded-md focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 h-10">
-                            <SelectValue placeholder={isFetchingRooms ? "Đang tải phòng..." : "Chọn phòng"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                            {availableRooms.length > 0 ? availableRooms.map(room => (
-                                <SelectItem key={room.id} value={room.id!}>
-                                    {room.roomNumber} - {room.roomTypeName} ({formatCurrency(room.pricePerNight)})
-                                </SelectItem>
-                            )) : <SelectItem value="no-rooms" disabled>Không có phòng trống cho ngày đã chọn</SelectItem>}
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">Email</Label>
+                    <Input id="email" type="email" value={booking.email || ""} onChange={(e) => handleChange("email", e.target.value)} className="col-span-3" />
                   </div>
                 </div>
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="grid grid-cols-1 gap-2">
-                        <Label htmlFor="checkInDate" className="text-base text-gray-700">Ngày nhận phòng</Label>
+              </div>
+
+              {/* Booking Details */}
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-semibold text-lg mb-4">2. Chi tiết đặt phòng</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">Ngày nhận phòng</Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10", !checkInDate && "text-gray-400")}>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal col-span-3", !checkInDate && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {checkInDate ? format(checkInDate, "dd/MM/yyyy") : "Chọn ngày"}
+                          {checkInDate ? format(checkInDate, "dd/MM/yyyy") : <span>Chọn ngày</span>}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar mode="single" selected={checkInDate} onSelect={handleCheckInDateChange} initialFocus disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}/>
-                        </PopoverContent>
+                      <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={checkInDate} onSelect={handleCheckInDateChange} /></PopoverContent>
                       </Popover>
                     </div>
-                    <div className="grid grid-cols-1 gap-2">
-                        <Label htmlFor="checkOutDate" className="text-base text-gray-700">Ngày trả phòng</Label>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">Ngày trả phòng</Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10", !checkOutDate && "text-gray-400")}>
+                         <Button variant="outline" className={cn("w-full justify-start text-left font-normal col-span-3", !checkOutDate && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {checkOutDate ? format(checkOutDate, "dd/MM/yyyy") : "Chọn ngày"}
+                          {checkOutDate ? format(checkOutDate, "dd/MM/yyyy") : <span>Chọn ngày</span>}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar mode="single" selected={checkOutDate} onSelect={handleCheckOutDateChange} disabled={(date) => checkInDate ? date <= checkInDate : false} initialFocus/>
-                        </PopoverContent>
+                      <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={checkOutDate} onSelect={handleCheckOutDateChange} /></PopoverContent>
                       </Popover>
-                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="grid grid-cols-1 gap-2">
-                            <Label htmlFor="advancePayment" className="text-base text-gray-700">Trả trước (VNĐ)</Label>
-                            <Input id="advancePayment" value={formatCurrency(booking.advancePayment)} onChange={(e) => handleAdvancePaymentChange(e.target.value)} className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10"/>
+                   <div className="grid grid-cols-4 items-center gap-4">
+                      <Label className="text-right">Chọn phòng</Label>
+                       <Select value={booking.roomId} onValueChange={(value) => handleChange("roomId", value)} disabled={isFetchingRooms}>
+                         <SelectTrigger className="col-span-3">{isFetchingRooms ? 'Đang tải...' : (availableRooms.find(r => r.id === booking.roomId)?.roomTypeName || 'Chọn phòng')}</SelectTrigger>
+                         <SelectContent>
+                          {availableRooms.filter(room => room.id).map(room => (
+                            <SelectItem key={room.id} value={room.id!}>
+                              {room.roomTypeName} ({room.roomNumber}) - {formatCurrency(room.pricePerNight)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                         </div>
-                        <div className="grid grid-cols-1 gap-2">
-                            <Label htmlFor="agreedPrice" className="text-base text-gray-700">Tổng tiền</Label>
-                      <Input
-                              id="agreedPrice"
-                              value={formatCurrency(booking.agreedPrice)}
-                              className="border-b border-gray-400 bg-gray-100 rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10"
-                              readOnly
-                            />
-                        </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="numberOfAdults" className="text-right">Người lớn</Label>
+                      <Input id="numberOfAdults" type="number" min="1" value={booking.numberOfAdults} onChange={(e) => handleChange("numberOfAdults", parseInt(e.target.value, 10))} className="col-span-3" />
                     </div>
-                    <div className="grid grid-cols-1 gap-2">
-                        <Label htmlFor="note" className="text-base text-gray-700">Ghi chú</Label>
-                        <Input id="note" value={booking.note || ''} onChange={(e) => handleChange("note", e.target.value)} className="border-b border-gray-400 bg-transparent rounded-none focus:border-[#369eff] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-10"/>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="numberOfChildren" className="text-right">Trẻ em</Label>
+                      <Input id="numberOfChildren" type="number" min="0" value={booking.numberOfChildren} onChange={(e) => handleChange("numberOfChildren", parseInt(e.target.value, 10))} className="col-span-3" />
                     </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                       <Label htmlFor="note" className="text-right">Ghi chú</Label>
+                       <Input id="note" value={booking.note || ''} onChange={(e) => handleChange("note", e.target.value)} className="col-span-3" />
+                    </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column (Side): Services & Pricing */}
+            <div className="lg:col-span-1 space-y-4">
+               <div className="p-4 border rounded-lg">
+                 <h3 className="font-semibold text-lg mb-2">3. Dịch vụ & Thanh toán</h3>
+                 {/* Pricing */}
+                 <div className="space-y-4 mb-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">Tổng tiền</Label>
+                        <Input value={formatCurrency(booking.agreedPrice)} readOnly className="bg-gray-100 font-bold col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">Trả trước</Label>
+                        <Input value={formatCurrency(booking.advancePayment)} onChange={(e) => handleAdvancePaymentChange(e.target.value)} className="col-span-3" />
                   </div>
                 </div>
                 
-                {/* Service Selection */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Dịch vụ đã chọn</h3>
-                  <ScrollArea className="h-[150px] w-full rounded-md border p-4">
+                 {/* Selected Services */}
+                 <div className="mb-4">
+                    <h4 className="font-medium mb-2 text-sm">Đã chọn:</h4>
+                     <ScrollArea className="h-40 w-full rounded-md border p-2">
                     {selectedServices.length === 0 ? (
-                      <p className="text-sm text-gray-500">Chưa có dịch vụ nào được chọn.</p>
+                         <p className="text-sm text-gray-500 text-center py-4">Chưa có dịch vụ nào.</p>
                     ) : (
-                      <div className="space-y-4">
+                         <div className="space-y-2">
                         {selectedServices.map(s => (
-                          <div key={s.serviceId} className="flex items-center justify-between">
+                             <div key={s.serviceId} className="flex items-center justify-between text-sm">
                             <div>
                               <p className="font-medium">{s.name}</p>
-                              <p className="text-sm text-gray-500">{formatCurrency(s.price)}</p>
+                                 <p className="text-xs text-gray-500">{formatCurrency(s.price)}</p>
               </div>
                             <div className="flex items-center gap-2">
-                <Input
-                                type="number" 
-                                value={s.quantity} 
-                                onChange={(e) => handleServiceQuantityChange(s.serviceId, parseInt(e.target.value))}
-                                className="w-16 h-8 text-center"
-                                min="1"
-                              />
-                              <Button variant="ghost" size="icon" onClick={() => handleRemoveService(s.serviceId)}>
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
+                                 <Input type="number" value={s.quantity} onChange={(e) => handleServiceQuantityChange(s.serviceId, parseInt(e.target.value))} className="w-14 h-8 text-center" min="1"/>
+                                 <Button variant="ghost" size="icon" onClick={() => handleRemoveService(s.serviceId)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                             </div>
                           </div>
                         ))}
@@ -370,38 +378,36 @@ export function NewBookingDialog({ open, onOpenChange, onSave }: NewBookingDialo
                     )}
                   </ScrollArea>
                 </div>
-              </div>
-
-              {/* Right Column: Available Services */}
-              <div className="col-span-1">
-                <h3 className="text-lg font-semibold mb-4">Thêm dịch vụ</h3>
-                <ScrollArea className="h-[400px] w-full rounded-md border p-4">
-                  <div className="space-y-2">
+                 {/* Available Services */}
+                 <div>
+                    <h4 className="font-medium mb-2 text-sm">Thêm dịch vụ:</h4>
+                     <ScrollArea className="h-60 w-full rounded-md border p-2">
+                       <div className="space-y-1">
                     {availableServices.map(service => (
-                      <div key={service.id} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100">
+                           <div key={service.id} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100 text-sm">
                         <div>
                           <p className="font-medium">{service.name}</p>
-                          <p className="text-sm text-gray-500">{formatCurrency(service.price)}</p>
+                               <p className="text-xs text-gray-500">{formatCurrency(service.price)}</p>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleAddService(service)}>
-                          <PlusCircle className="h-5 w-5 text-green-500" />
-                </Button>
+                             <Button variant="ghost" size="icon" onClick={() => handleAddService(service)}><PlusCircle className="h-5 w-5 text-green-500" /></Button>
                       </div>
                     ))}
                   </div>
                 </ScrollArea>
               </div>
             </div>
-
-            <div className="flex justify-center gap-6 mt-8">
-              <Button variant="outline" onClick={() => onOpenChange(false)} className="bg-[#f08080] hover:bg-[#e06060] text-white border-none h-10 px-8" disabled={isSaving}>HỦY</Button>
-              <Button onClick={handleSave} className="bg-[#369eff] hover:bg-[#2b7fd9] text-white h-10 px-8" disabled={isSaving}>
-                {isSaving ? "Đang lưu..." : "LƯU ĐẶT PHÒNG"}
-              </Button>
             </div>
+
           </div>
-        </div>
+        </ScrollArea>
+        
+        <DialogFooter className="p-4 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>Hủy</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Đang lưu..." : "Lưu đặt phòng"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

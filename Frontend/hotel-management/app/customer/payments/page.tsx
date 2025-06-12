@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { get } from "@/lib/api-service"
-import { shouldUseMockData } from "@/lib/config"
+import { get } from "@/lib/api"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { 
   CreditCard, 
   Clock, 
@@ -18,7 +18,9 @@ import {
   CalendarClock,
   Banknote,
   Loader2,
-  Search
+  Search,
+  ChevronLeft,
+  Info
 } from "lucide-react"
 import { format } from "date-fns"
 
@@ -29,19 +31,6 @@ interface Service {
   quantity: number
   childQuantity?: number
   totalPrice: number
-}
-
-interface PendingPayment {
-  bookingId: number
-  bookingCode: string
-  roomName: string
-  checkInDate: string
-  checkOutDate: string
-  nights: number
-  pricePerNight: number
-  totalPrice: number
-  services: Service[]
-  created: string
 }
 
 interface Invoice {
@@ -61,243 +50,123 @@ interface Invoice {
   details?: string
 }
 
+const mockInvoices: Invoice[] = [
+  {
+    id: 1,
+    invoiceCode: 'INV-2024-001',
+    bookingId: 101,
+    bookingCode: 'BK-XYZ-101',
+    createdAt: '2024-06-10T10:00:00Z',
+    totalAmount: 4800000,
+    status: 'paid',
+    paymentMethod: 'Credit Card',
+  },
+  {
+    id: 2,
+    invoiceCode: 'INV-2024-002',
+    bookingId: 102,
+    bookingCode: 'BK-XYZ-102',
+    createdAt: '2024-05-20T14:30:00Z',
+    totalAmount: 2200000,
+    status: 'pending',
+    paymentMethod: null,
+  },
+  {
+    id: 3,
+    invoiceCode: 'INV-2024-003',
+    bookingId: 103,
+    bookingCode: 'BK-XYZ-103',
+    createdAt: '2024-04-15T09:00:00Z',
+    totalAmount: 3500000,
+    status: 'cancelled',
+    paymentMethod: 'Bank Transfer',
+  },
+];
+
 export default function PaymentsPage() {
   const { user } = useAuth()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab')
-  const [activeTab, setActiveTab] = useState(tabParam || "pending")
+  const [activeTab, setActiveTab] = useState(tabParam || "all")
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   
   useEffect(() => {
-    const fetchInvoices = async () => {
-      if (!user?.id) return
-      
-      try {
-        setLoading(true)
-        
-        if (shouldUseMockData()) {
-          // Mock data
-          const mockInvoices: Invoice[] = [
-            {
-              id: 1,
-              invoiceCode: "INV0001",
-              bookingId: 1,
-              bookingCode: "BK0001",
-              createdAt: "2023-12-01T10:00:00",
-              totalAmount: 1200000,
-              status: "Paid",
-              paymentMethod: "Credit Card"
-            },
-            {
-              id: 2,
-              invoiceCode: "INV0002",
-              bookingId: 2,
-              bookingCode: "BK0002",
-              createdAt: "2023-12-20T14:30:00",
-              totalAmount: 2000000,
-              status: "Pending",
-              paymentMethod: undefined
-            },
-            {
-              id: 3,
-              invoiceCode: "INV0003",
-              bookingId: 3,
-              bookingCode: "BK0003",
-              createdAt: "2023-11-10T09:15:00",
-              totalAmount: 1500000,
-              status: "Cancelled",
-              paymentMethod: undefined
-            },
-            {
-              id: 4,
-              invoiceCode: "INV0004",
-              bookingId: 4,
-              bookingCode: "BK0004",
-              createdAt: "2023-12-15T16:45:00",
-              totalAmount: 3500000,
-              status: "Paid",
-              paymentMethod: "Bank Transfer"
-            }
-          ]
-          setInvoices(mockInvoices)
+    // Simulate fetching invoices
+    setLoading(true);
+    setTimeout(() => {
+      if (user?.id) {
+        setInvoices(mockInvoices);
         } else {
-          // Real API call
-          const data = await get<Invoice[]>(`Invoices/customer/${user.id}`)
-          setInvoices(data)
-        }
-      } catch (err) {
-        console.error("Error fetching invoices:", err)
-        setError("Không thể tải dữ liệu thanh toán. Vui lòng thử lại sau.")
-      } finally {
-        setLoading(false)
+        setInvoices([]);
       }
-    }
-    
-    fetchInvoices()
+      setLoading(false);
+    }, 500); // Simulate network delay
   }, [user])
   
-  // Check for pending payment in localStorage and add it to invoices
-  useEffect(() => {
-    // First check for pendingBooking (legacy support)
-    const pendingBookingString = localStorage.getItem("pendingBooking")
-    if (pendingBookingString) {
-      try {
-        const pendingBooking = JSON.parse(pendingBookingString)
-        
-        // Create a new invoice from the pending booking
-        const newInvoice: Invoice = {
-          id: Math.floor(Math.random() * 1000000), // Generate temporary id
-          invoiceCode: `INV${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
-          bookingId: Math.floor(Math.random() * 1000000),
-          bookingCode: `BK${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
-          createdAt: pendingBooking.createdAt || pendingBooking.created || new Date().toISOString(),
-          // Make sure we have a valid totalAmount - check different possible properties
-          totalAmount: pendingBooking.totalAmount || pendingBooking.totalPrice || pendingBooking.pricePerNight * (pendingBooking.nights || 1) || 0,
-          status: "Pending",
-          paymentMethod: null
-        }
-        
-        // Add to invoices (avoid duplicates by checking if we already have a similar invoice)
-        setInvoices(prev => {
-          const similar = prev.find(inv => 
-            inv.totalAmount === newInvoice.totalAmount && 
-            inv.status.toLowerCase() === "pending"
-          )
-          return similar ? prev : [...prev, newInvoice]
-        })
-      } catch (error) {
-        console.error("Error parsing pending booking:", error)
-      }
-    }
-
-    // Then check for pendingPayment (new format with services)
-    const pendingPaymentString = localStorage.getItem("pendingPayment")
-    if (pendingPaymentString) {
-      try {
-        const pendingPayment = JSON.parse(pendingPaymentString) as PendingPayment
-        
-        // Calculate total cost including room and services
-        let totalAmount = pendingPayment.totalPrice
-        let serviceDetails = ""
-        
-        // Add service costs if any
-        if (pendingPayment.services && pendingPayment.services.length > 0) {
-          const servicesTotalPrice = pendingPayment.services.reduce((total, service) => total + service.totalPrice, 0)
-          totalAmount += servicesTotalPrice
-          
-          // Create service details for invoice description
-          serviceDetails = ` + ${pendingPayment.services.length} dịch vụ`
-        }
-        
-        // Create a new invoice from the pending payment
-        const newInvoice: Invoice = {
-          id: Math.floor(Math.random() * 1000000), // Generate temporary id
-          invoiceCode: `INV${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
-          bookingId: pendingPayment.bookingId,
-          bookingCode: pendingPayment.bookingCode,
-          createdAt: pendingPayment.created || new Date().toISOString(),
-          totalAmount: totalAmount,
-          status: "Pending",
-          paymentMethod: null,
-          // Add custom properties for display
-          roomName: pendingPayment.roomName,
-          checkIn: pendingPayment.checkInDate, 
-          checkOut: pendingPayment.checkOutDate,
-          nights: pendingPayment.nights,
-          services: pendingPayment.services,
-          details: `${pendingPayment.roomName} (${pendingPayment.nights} đêm)${serviceDetails}`
-        }
-        
-        // Add to invoices (avoid duplicates by checking if already exists)
-        setInvoices(prev => {
-          const similar = prev.find(inv => 
-            inv.bookingCode === newInvoice.bookingCode && 
-            inv.status.toLowerCase() === "pending"
-          )
-          return similar ? prev : [...prev, newInvoice]
-        })
-      } catch (error) {
-        console.error("Error parsing pending payment:", error)
-      }
-    }
-  }, [])
-  
-  // Get status badge color and icon based on status
   const getStatusDetails = (status: string) => {
     switch (status.toLowerCase()) {
       case 'paid':
         return {
-          color: 'bg-green-100 text-green-800',
+          text: 'Đã thanh toán',
+          color: 'bg-green-100 text-green-800 border-green-200',
           icon: <CheckCircle2 className="w-4 h-4 text-green-600" />
         }
       case 'pending':
         return {
-          color: 'bg-yellow-100 text-yellow-800',
+          text: 'Chờ thanh toán',
+          color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
           icon: <Clock className="w-4 h-4 text-yellow-600" />
         }
       case 'cancelled':
         return {
-          color: 'bg-red-100 text-red-800',
+          text: 'Đã hủy',
+          color: 'bg-red-100 text-red-800 border-red-200',
           icon: <XCircle className="w-4 h-4 text-red-600" />
         }
       case 'processing':
         return {
-          color: 'bg-blue-100 text-blue-800',
+            text: 'Đang xử lý',
+            color: 'bg-blue-100 text-blue-800 border-blue-200',
           icon: <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
         }
       default:
         return {
-          color: 'bg-gray-100 text-gray-800',
+          text: status,
+          color: 'bg-gray-100 text-gray-800 border-gray-200',
           icon: <AlertCircle className="w-4 h-4 text-gray-600" />
         }
     }
   }
   
-  // Format date for display
   const formatDate = (dateString: string | undefined | null) => {
-    if (!dateString) {
-      return 'Ngày không xác định';
-    }
-    try {
-      return format(new Date(dateString), 'dd/MM/yyyy HH:mm');
-    } catch (error) {
-      console.error('Invalid date format:', dateString);
-      return 'Ngày không hợp lệ';
-    }
+    if (!dateString) return "N/A"
+    return format(new Date(dateString), "dd/MM/yyyy 'lúc' HH:mm")
   }
   
-  // Format price as VND
   const formatPrice = (price: number | undefined | null) => {
-    // Check if price is undefined or null
-    if (price === undefined || price === null) {
-      return '0 ₫';
-    }
-    return price.toLocaleString('vi-VN') + ' ₫'
+    if (price === null || price === undefined) return "N/A"
+    return price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })
   }
-  
-  // Filter invoices by status
-  const pendingInvoices = invoices.filter(invoice => 
-    invoice.status.toLowerCase() === 'pending'
-  )
-  
-  const paidInvoices = invoices.filter(invoice => 
-    invoice.status.toLowerCase() === 'paid'
-  )
-  
-  const otherInvoices = invoices.filter(invoice => 
-    !['pending', 'paid'].includes(invoice.status.toLowerCase())
-  )
+
+  const filteredInvoices = invoices.filter(invoice => {
+    if (activeTab === 'all') return true
+    return invoice.status.toLowerCase() === activeTab
+  })
   
   const renderInvoiceList = (invoiceList: Invoice[]) => {
-    if (!invoiceList.length) {
+    if (invoiceList.length === 0) {
       return (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <CalendarClock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-700">Không có hóa đơn nào</h3>
-          <p className="text-gray-500 mt-1">Không tìm thấy hóa đơn nào trong danh mục này</p>
+        <Card>
+            <CardContent className="p-10 text-center">
+                <div className="mx-auto bg-gray-100 rounded-full h-16 w-16 flex items-center justify-center">
+                    <Search className="h-8 w-8 text-gray-400" />
         </div>
+                <h3 className="mt-4 text-lg font-medium text-gray-800">Không tìm thấy hóa đơn</h3>
+                <p className="mt-1 text-gray-500">Không có hóa đơn nào khớp với bộ lọc của bạn.</p>
+            </CardContent>
+        </Card>
       )
     }
     
@@ -305,135 +174,107 @@ export default function PaymentsPage() {
       <div className="space-y-4">
         {invoiceList.map(invoice => {
           const statusDetails = getStatusDetails(invoice.status)
-          
           return (
-            <div key={invoice.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-5">
-                <div className="flex justify-between items-start mb-4">
+            <Card key={invoice.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-row justify-between items-start p-5 pb-3">
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-lg font-medium">Hóa đơn #{invoice.invoiceCode}</h3>
-                      <Badge variant="outline">Đặt phòng #{invoice.bookingCode}</Badge>
+                        <CardTitle className="text-lg">Hóa đơn #{invoice.invoiceCode}</CardTitle>
+                        <CardDescription>Đặt phòng: {invoice.bookingCode}</CardDescription>
                     </div>
-                    <p className="text-gray-500 text-sm mt-1">
-                      {formatDate(invoice.createdAt)}
-                    </p>
-                    
-                    {/* Show booking details if available */}
-                    {invoice.roomName && (
-                      <div className="mt-3 space-y-1 text-sm text-gray-600">
-                        <p className="font-medium">{invoice.details || invoice.roomName}</p>
-                        {invoice.checkIn && invoice.checkOut && (
-                          <p>
-                            {formatDate(invoice.checkIn)} - {formatDate(invoice.checkOut)}{' '}
-                            ({invoice.nights || 1} đêm)
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${statusDetails.color}`}>
+                    <Badge variant="outline" className={`${statusDetails.color} gap-1.5`}>
                       {statusDetails.icon}
-                      <span className="ml-1">{invoice.status}</span>
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Show service details if available */}
-                {invoice.services && invoice.services.length > 0 && (
-                  <div className="mt-2 mb-3">
-                    <p className="text-sm text-gray-600 font-medium mb-1">Dịch vụ đi kèm:</p>
-                    <div className="pl-2 border-l-2 border-blue-100">
-                      {invoice.services.map((service, idx) => (
-                        <div key={idx} className="text-sm flex justify-between py-1">
-                          <span>{service.name} x {service.quantity}</span>
-                          <span className="font-medium">{formatPrice(service.totalPrice)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                  <div>
-                    <div className="text-sm text-gray-500">Tổng tiền</div>
-                    <div className="font-medium text-lg">{formatPrice(invoice.totalAmount)}</div>
-                    {invoice.paymentMethod && (
-                      <div className="text-xs text-gray-500 flex items-center mt-1">
-                        <CreditCard className="w-3 h-3 mr-1" />
-                        {invoice.paymentMethod}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div>
-                    {invoice.status.toLowerCase() === 'pending' && (
-                      <Link href={`/customer/payments/invoice/${invoice.id}`}>
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                          <Banknote className="w-4 h-4 mr-1" />
-                          Thanh toán
-                        </Button>
-                      </Link>
-                    )}
+                        {statusDetails.text}
+                    </Badge>
+                </CardHeader>
+              <CardContent className="p-5 pt-0">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div className="font-medium text-gray-500">Ngày tạo:</div>
+                    <div className="text-gray-800">{formatDate(invoice.createdAt)}</div>
                     
-                    {invoice.status.toLowerCase() !== 'pending' && (
+                    <div className="font-medium text-gray-500">Tổng tiền:</div>
+                    <div className="font-bold text-blue-600">{formatPrice(invoice.totalAmount)}</div>
+
+                    {invoice.paymentMethod && (
+                        <>
+                            <div className="font-medium text-gray-500">Phương thức:</div>
+                            <div className="text-gray-800">{invoice.paymentMethod}</div>
+                        </>
+                    )}
+                  </div>
+              </CardContent>
+              <CardFooter className="bg-gray-50 p-4 flex justify-end">
                       <Link href={`/customer/payments/invoice/${invoice.id}`}>
-                        <Button size="sm" variant="outline">
-                          <Search className="w-4 h-4 mr-1" />
+                    <Button variant="outline" size="sm">
+                        <Info className="w-4 h-4 mr-2" />
                           Xem chi tiết
                         </Button>
                       </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+              </CardFooter>
+            </Card>
           )
         })}
       </div>
     )
   }
+
+  const allCount = invoices.length
+  const pendingCount = invoices.filter(i => i.status.toLowerCase() === 'pending').length
+  const paidCount = invoices.filter(i => i.status.toLowerCase() === 'paid').length
+  const cancelledCount = invoices.filter(i => i.status.toLowerCase() === 'cancelled').length
   
   return (
-    <div className="container max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Thanh toán</h1>
-      
-      {loading ? (
-        <div className="flex items-center justify-center p-12">
-          <Loader2 className="animate-spin w-8 h-8 text-blue-600" />
-          <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
+    <div className="max-w-4xl mx-auto py-6 px-4">
+        <div className="flex items-center gap-2 mb-4">
+            <Link href="/customer" className="text-blue-600 hover:underline flex items-center">
+                <ChevronLeft className="h-4 w-4" />
+                <span>Quay lại</span>
+            </Link>
         </div>
-      ) : error ? (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center">
-          {error}
+        <div className="mb-6">
+            <h1 className="text-2xl font-bold">Lịch sử thanh toán</h1>
+            <p className="text-gray-500 mt-1">Xem và quản lý tất cả các hóa đơn và thanh toán của bạn.</p>
         </div>
-      ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-full">
-            <TabsTrigger value="pending" className="relative">
-              Chờ thanh toán
-              {pendingInvoices.length > 0 && (
-                <span className="absolute top-0 right-1 transform -translate-y-1/2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {pendingInvoices.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="paid">Đã thanh toán</TabsTrigger>
-            <TabsTrigger value="other">Khác</TabsTrigger>
+
+        {loading ? (
+            <Card>
+                <CardContent className="p-12 flex flex-col items-center justify-center">
+                    <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+                    <p className="text-gray-600">Đang tải lịch sử thanh toán...</p>
+                </CardContent>
+            </Card>
+        ) : error ? (
+            <Card className="border-red-200 bg-red-50">
+                <CardContent className="p-6 text-center text-red-700">
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+                    <p>{error}</p>
+                </CardContent>
+            </Card>
+        ) : invoices.length === 0 ? (
+            <Card>
+                <CardContent className="p-12 text-center">
+                    <Banknote className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-medium text-gray-700">Chưa có thanh toán nào</h3>
+                    <p className="text-gray-500 mt-2 max-w-md mx-auto">Bạn chưa có hóa đơn hoặc thanh toán nào. Hãy bắt đầu bằng cách đặt phòng.</p>
+                    <Link href="/customer/search">
+                        <Button className="mt-6">
+                            <Search className="w-4 h-4 mr-2" />
+                            Tìm phòng ngay
+                        </Button>
+                    </Link>
+                </CardContent>
+            </Card>
+        ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+                    <TabsTrigger value="all">Tất cả <Badge variant="secondary" className="ml-2">{allCount}</Badge></TabsTrigger>
+                    <TabsTrigger value="pending">Chờ thanh toán <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-800">{pendingCount}</Badge></TabsTrigger>
+                    <TabsTrigger value="paid">Đã thanh toán <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800">{paidCount}</Badge></TabsTrigger>
+                    <TabsTrigger value="cancelled">Đã hủy <Badge variant="secondary" className="ml-2 bg-red-100 text-red-800">{cancelledCount}</Badge></TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="pending">
-            {renderInvoiceList(pendingInvoices)}
-          </TabsContent>
-          
-          <TabsContent value="paid">
-            {renderInvoiceList(paidInvoices)}
-          </TabsContent>
-          
-          <TabsContent value="other">
-            {renderInvoiceList(otherInvoices)}
-          </TabsContent>
+                <TabsContent value="all" className="mt-6">{renderInvoiceList(filteredInvoices)}</TabsContent>
+                <TabsContent value="pending" className="mt-6">{renderInvoiceList(filteredInvoices)}</TabsContent>
+                <TabsContent value="paid" className="mt-6">{renderInvoiceList(filteredInvoices)}</TabsContent>
+                <TabsContent value="cancelled" className="mt-6">{renderInvoiceList(filteredInvoices)}</TabsContent>
         </Tabs>
       )}
     </div>

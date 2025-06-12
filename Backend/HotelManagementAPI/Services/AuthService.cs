@@ -81,6 +81,7 @@ namespace HotelManagementAPI.Services
                         Id = Customer.Id,
                         CustomerCode = Customer.CustomerCode,
                         UserName = Customer.UserName,
+                        FullName = Customer.FullName,
                         Email = Customer.Email,
                         Phone = Customer.Phone,
                         IdentityNumber = Customer.IdentityNumber,
@@ -141,6 +142,7 @@ namespace HotelManagementAPI.Services
             {
                 CustomerCode = CustomerCode,
                 UserName = registerDto.Username,
+                FullName = registerDto.FullName,
                 Email = registerDto.Email,
                 Phone = registerDto.Phone,
                 IdentityNumber = registerDto.IdentityNumber,
@@ -163,6 +165,7 @@ namespace HotelManagementAPI.Services
                     Id = Customer.Id,
                     CustomerCode = Customer.CustomerCode,
                     UserName = Customer.UserName,
+                    FullName = Customer.FullName,
                     Email = Customer.Email,
                     Phone = Customer.Phone,
                     IdentityNumber = Customer.IdentityNumber,
@@ -176,6 +179,7 @@ namespace HotelManagementAPI.Services
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userId),
+                
                 new Claim(JwtRegisteredClaimNames.Name, username),
                 new Claim(ClaimTypes.Role, role),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())

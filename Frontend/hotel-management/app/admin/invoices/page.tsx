@@ -7,13 +7,68 @@ import { InvoicePrint } from "@/components/invoice-print"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { toast } from "sonner"
 import * as XLSX from 'xlsx'
-import { getInvoices, deleteInvoice, Invoice, createInvoice } from "@/lib/invoice-service"
+import { Invoice } from "@/lib/invoice-service"
 import { getBookings, Booking } from "@/lib/booking-service"
 import { getServicesForBooking } from "@/lib/booking-service-service"
 import { getRooms, getRoomTypes, Room, RoomType } from "@/lib/room-service"
 import { differenceInDays } from 'date-fns'
 import { Spinner } from "@/components/ui/spinner"
 import { Button } from "@/components/ui/button"
+
+// Sample mock data for invoices
+const mockInvoices: Invoice[] = [
+  {
+    id: 'INV001',
+    bookingId: 'BK001',
+    customerId: 'CUST001',
+    customerName: 'Nguyễn Văn A',
+    roomId: 'R101',
+    roomNumber: '101',
+    checkInDate: '2024-05-01T14:00:00Z',
+    checkOutDate: '2024-05-05T12:00:00Z',
+    totalAmount: 5500000,
+    paidAmount: 5500000,
+    paymentStatus: 'paid',
+    paymentMethod: 'credit_card',
+    invoiceDate: '2024-05-05T13:00:00Z',
+    services: [
+      { id: 'S01', serviceId: 'SV01', serviceName: 'Giặt ủi', quantity: 2, price: 150000, amount: 300000 },
+      { id: 'S02', serviceId: 'SV02', serviceName: 'Bữa sáng tại phòng', quantity: 4, price: 50000, amount: 200000 },
+    ],
+  },
+  {
+    id: 'INV002',
+    bookingId: 'BK002',
+    customerId: 'CUST002',
+    customerName: 'Trần Thị B',
+    roomId: 'R203',
+    roomNumber: '203',
+    checkInDate: '2024-05-10T14:00:00Z',
+    checkOutDate: '2024-05-12T12:00:00Z',
+    totalAmount: 3200000,
+    paidAmount: 0,
+    paymentStatus: 'unpaid',
+    invoiceDate: '2024-05-12T13:00:00Z',
+    services: [
+      { id: 'S03', serviceId: 'SV03', serviceName: 'Đưa đón sân bay', quantity: 1, price: 200000, amount: 200000 },
+    ],
+  },
+    {
+    id: 'INV003',
+    bookingId: 'BK003',
+    customerId: 'CUST003',
+    customerName: 'Lê Văn C',
+    roomId: 'R305',
+    roomNumber: '305',
+    checkInDate: '2024-06-01T14:00:00Z',
+    checkOutDate: '2024-06-03T12:00:00Z',
+    totalAmount: 2800000,
+    paidAmount: 0,
+    paymentStatus: 'unpaid',
+    invoiceDate: '2024-06-03T13:00:00Z',
+    services: [],
+  },
+];
 
 export default function AdminInvoicesPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -25,91 +80,14 @@ export default function AdminInvoicesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchAndProcessData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [invoicesData, bookingsData, roomsData, roomTypesData] = await Promise.all([
-        getInvoices(), 
-        getBookings(),
-        getRooms(),
-        getRoomTypes(),
-      ]);
-      
-      const invoicedBookingIds = new Set(invoicesData.map(inv => String(inv.bookingId)));
-      const bookingsToInvoice = bookingsData.filter(b => b.status === 'CheckedOut' && !invoicedBookingIds.has(String(b.id)));
-      
-      if (bookingsToInvoice.length > 0) {
-        const creationPromises = bookingsToInvoice.map(async (booking) => {
-          // Fetch services for each specific booking
-          const servicesForBooking = await getServicesForBooking(booking.id);
-          
-          // Find room and room type
-          const room = roomsData.find(r => String(r.id) === String(booking.roomId));
-          const roomType = room ? roomTypesData.find(rt => String(rt.id) === String(room.roomTypeId)) : undefined;
-
-          // Calculate room cost
-          let roomCost = 0;
-          if (roomType && booking.checkIn && booking.checkOut) {
-            const checkInDate = new Date(booking.checkIn);
-            const checkOutDate = new Date(booking.checkOut);
-            // Ensure difference is at least 1 day
-            const numberOfDays = Math.max(1, differenceInDays(checkOutDate, checkInDate));
-            roomCost = (roomType.basePrice || 0) * numberOfDays;
-          } else {
-            // Fallback to booking's total price if room/type not found
-            roomCost = booking.totalPrice || 0;
-          }
-
-          const invoiceServices = servicesForBooking.map(bs => ({
-            serviceId: bs.serviceId,
-            serviceName: bs.serviceName || 'Dịch vụ', // Fallback name
-            quantity: bs.quantity,
-            price: bs.price,
-            amount: bs.quantity * bs.price
-          }));
-          
-          const totalServicesAmount = invoiceServices.reduce((sum, s) => sum + s.amount, 0);
-          const totalAmount = roomCost + totalServicesAmount;
-
-          const newInvoice: Omit<Invoice, 'id' | 'createdAt' | 'updatedAt'> = {
-            bookingId: String(booking.id),
-            customerId: booking.customerId,
-            customerName: booking.customerName,
-            roomId: String(booking.roomId),
-            roomNumber: booking.roomNumber,
-            checkInDate: booking.checkIn,
-            checkOutDate: booking.checkOut,
-            totalAmount: totalAmount,
-            paidAmount: 0,
-            paymentStatus: 'unpaid',
-            invoiceDate: new Date().toISOString(), // Use current date
-            services: invoiceServices 
-          };
-          return createInvoice(newInvoice);
-        });
-
-        const newInvoices = await Promise.all(creationPromises);
-        toast.success(`Đã tự động tạo ${newInvoices.length} hóa đơn mới cho các đặt phòng đã trả phòng.`);
-        // Refetch invoices to get the final list
-        const updatedInvoices = await getInvoices();
-        setInvoices(updatedInvoices);
-      } else {
-        setInvoices(invoicesData);
-      }
-
-      setError(null);
-    } catch (err: any) {
-      const errorMessage = err?.data?.message || err?.message || "Lỗi kết nối đến máy chủ.";
-      setError(errorMessage);
-      toast.error(`Không thể xử lý dữ liệu: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchAndProcessData()
-  }, [fetchAndProcessData])
+    // Load mock data instead of fetching from the backend
+    setLoading(true);
+    setTimeout(() => {
+      setInvoices(mockInvoices);
+      setLoading(false);
+    }, 500); // Simulate network delay
+  }, [])
 
   // Revenue calculation functions
   const getTotalRevenue = () => {
@@ -176,20 +154,32 @@ export default function AdminInvoicesPage() {
   }
 
   const handleAddInvoice = () => {
-    fetchAndProcessData();
+    const newId = `INV${String(invoices.length + 1).padStart(3, '0')}`;
+    const newInvoice: Invoice = {
+      id: newId,
+      bookingId: `BK${String(invoices.length + 1).padStart(3, '0')}`,
+      customerId: `CUST${String(invoices.length + 1).padStart(3, '0')}`,
+      customerName: 'Khách hàng mới',
+      roomId: 'R104',
+      roomNumber: '104',
+      checkInDate: new Date().toISOString(),
+      checkOutDate: new Date().toISOString(),
+      totalAmount: 1500000,
+      paidAmount: 0,
+      paymentStatus: 'unpaid',
+      invoiceDate: new Date().toISOString(),
+      services: [],
+    };
+    setInvoices(prev => [...prev, newInvoice]);
+    toast.success(`Đã thêm hóa đơn mới: ${newId}`);
   }
 
   const handleDeleteInvoice = async () => {
     if (selectedInvoice && selectedInvoice.id) {
-      try {
-        await deleteInvoice(selectedInvoice.id);
-        toast.success(`Đã xóa hóa đơn ${selectedInvoice.id}.`);
-        fetchAndProcessData(); // Refetch invoices after deletion
-        setIsDeleteDialogOpen(false);
-      } catch (error) {
-        toast.error("Xóa hóa đơn thất bại.");
-        console.error("Error deleting invoice:", error);
-      }
+      setInvoices(prev => prev.filter(inv => inv.id !== selectedInvoice.id));
+      toast.success(`Đã xóa hóa đơn ${selectedInvoice.id}.`);
+      setIsDeleteDialogOpen(false);
+      setSelectedInvoice(null);
     }
   };
 
@@ -254,7 +244,7 @@ export default function AdminInvoicesPage() {
       </div>
       
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="bg-white rounded-lg shadow p-4 flex-1">
+        {/* <div className="bg-white rounded-lg shadow p-4 flex-1">
           <h3 className="text-lg font-semibold text-gray-700 mb-2">Tổng doanh thu</h3>
           <p className="text-3xl font-bold text-blue-600">{formatCurrency(getTotalRevenue())}</p>
           <p className="text-sm text-gray-500 mt-1">Đã thanh toán: {formatCurrency(getTotalPaidRevenue())}</p>
@@ -264,7 +254,7 @@ export default function AdminInvoicesPage() {
           <h3 className="text-lg font-semibold text-gray-700 mb-2">Số hóa đơn tháng này</h3>
           <p className="text-3xl font-bold text-blue-600">{getCurrentMonthInvoiceCount()}</p>
           <p className="text-sm text-gray-500 mt-1">Đã thanh toán: {getPaidInvoicesCount()} | Chờ thanh toán: {getPendingInvoicesCount()}</p>
-        </div>
+        </div> */}
         
         {/* <div className="bg-white rounded-lg shadow p-4 flex-1">
           <h3 className="text-lg font-semibold text-gray-700 mb-2">Doanh thu trung bình/hóa đơn</h3>

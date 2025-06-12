@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation" 
-import { get, post } from "@/lib/api-service"
-import { shouldUseMockData } from "@/lib/config"
+import { get, post } from "@/lib/api"
 import { format } from "date-fns"
 import { 
   CalendarClock, 
@@ -82,49 +81,16 @@ export default function MyBookingsPage() {
       try {
         setLoading(true)
         
-        if (shouldUseMockData()) {
-          // For mock data mode
-          const mockBookings: Booking[] = [
-            {
-              id: 1,
-              bookingCode: "BK0001",
-              roomId: 101,
-              roomNumber: "101",
-              roomTypeName: "Deluxe King",
-              checkIn: "2023-12-01T14:00:00",
-              checkOut: "2023-12-05T12:00:00",
-              status: "Confirmed"
-            },
-            {
-              id: 2,
-              bookingCode: "BK0002",
-              roomId: 205,
-              roomNumber: "205",
-              roomTypeName: "Suite",
-              checkIn: "2023-12-20T14:00:00",
-              checkOut: "2023-12-25T12:00:00",
-              status: "Pending"
-            },
-            {
-              id: 3,
-              bookingCode: "BK0003",
-              roomId: 310,
-              roomNumber: "310",
-              roomTypeName: "Standard Double",
-              checkIn: "2023-11-10T14:00:00",
-              checkOut: "2023-11-12T12:00:00",
-              status: "Completed"
-            }
-          ]
-          setBookings(mockBookings)
-        } else {
-          // If real API mode
-          const data = await get<Booking[]>(`Bookings/customer/${user.id}`)
-          setBookings(data)
-        }
+        const response = await get<Booking[]>(`Bookings/customer/${user.id}`)
+        setBookings(response.data)
       } catch (err) {
         console.error("Error fetching bookings:", err)
-        setError("Không thể tải dữ liệu đặt phòng. Vui lòng thử lại sau.")
+        // It's possible the API returns 404 if there are no bookings, which is not a critical error.
+        if (err instanceof Error && err.message.includes("404")) {
+          setBookings([]) // Set to empty array if no bookings found
+        } else {
+          setError("Không thể tải dữ liệu đặt phòng. Vui lòng thử lại sau.")
+        }
       } finally {
         setLoading(false)
       }
@@ -170,6 +136,9 @@ export default function MyBookingsPage() {
   
   // Format price as VND
   const formatPrice = (price: number) => {
+    if (typeof price !== 'number') {
+      return 'N/A'; // or '0 ₫' or some other default
+    }
     return price.toLocaleString('vi-VN') + ' ₫'
   }
 
@@ -223,127 +192,69 @@ export default function MyBookingsPage() {
   
   // Handle confirm booking
   const handleConfirmBooking = async () => {
-    if (!pendingBooking) return
+    if (!user) {
+      toast.error("Bạn cần đăng nhập để hoàn tất đặt phòng.", {
+        action: {
+          label: "Đăng nhập",
+          onClick: () => router.push('/login'),
+        },
+      });
+      return;
+    }
+
+    if (!pendingBooking) {
+      toast.error("Không tìm thấy thông tin đặt phòng tạm thời.", {
+        description: "Vui lòng thử chọn lại phòng và ngày đặt.",
+        action: {
+          label: "Tìm phòng",
+          onClick: () => router.push('/customer/search'),
+        },
+      });
+      return;
+    }
+    
+    // Detailed validation
+    if (!pendingBooking.roomId) {
+      toast.error("Lỗi: Không tìm thấy mã phòng. Vui lòng thử lại.");
+      return;
+    }
+    if (!pendingBooking.checkInDate || !pendingBooking.checkOutDate) {
+      toast.error("Vui lòng chọn ngày nhận và trả phòng.", {
+        description: "Bạn có thể chọn lại ngày từ trang chi tiết phòng.",
+        action: {
+          label: "Quay lại",
+          onClick: () => router.push(`/customer/room/${pendingBooking.roomId}`),
+        },
+      });
+      return;
+    }
     
     try {
-      // In a real app, this would send the booking to the API
-      // For now, we'll just simulate success
+      toast.loading("Đang xử lý đặt phòng...");
+
+      const bookingPayload = {
+        customerId: user.id,
+        roomId: pendingBooking.roomId,
+        checkInDate: new Date(pendingBooking.checkInDate).toISOString(),
+        checkOutDate: new Date(pendingBooking.checkOutDate).toISOString(),
+        totalPrice: pendingBooking.totalPrice,
+        status: "Confirmed" // Or "Pending" depending on flow
+      };
+
+      const newBooking = await post<Booking>('/Bookings', bookingPayload);
       
-      if (shouldUseMockData()) {
-        // Simulate API call delay
-        toast.loading("Đang xử lý đặt phòng...");
-        
-        setTimeout(() => {
-          // Create a new confirmed booking
-          const newBooking = {
-            id: Date.now(),
-            bookingCode: `BK${Math.floor(1000 + Math.random() * 9000)}`,
-            roomId: typeof pendingBooking.roomId === 'string' ? parseInt(pendingBooking.roomId) : pendingBooking.roomId,
-            roomNumber: Math.floor(100 + Math.random() * 500).toString(),
-            roomTypeName: pendingBooking.roomName,
-            checkIn: pendingBooking.checkInDate,
-            checkOut: pendingBooking.checkOutDate,
-            status: "Confirmed"
-          };
-          
-          // Add to bookings list
-          setBookings(prev => [newBooking, ...prev]);
-          
-          // Also create a payment record in localStorage
-          const paymentData = {
-            bookingId: newBooking.id,
-            bookingCode: newBooking.bookingCode,
-            roomName: pendingBooking.roomName,
-            checkInDate: pendingBooking.checkInDate,
-            checkOutDate: pendingBooking.checkOutDate,
-            nights: pendingBooking.nights,
-            pricePerNight: pendingBooking.pricePerNight,
-            totalPrice: pendingBooking.totalPrice,
-            services: [], // Will be populated if user adds services
-            created: new Date().toISOString()
-          };
-          
-          // Get any services the user might have added to their booking
-          const storageKey = `booking_services_${String(newBooking.id)}`;
-          const servicesJson = localStorage.getItem(storageKey);
-          if (servicesJson) {
-            try {
-              const services = JSON.parse(servicesJson);
-              paymentData.services = services;
-            } catch (error) {
-              console.error("Error parsing services:", error);
-            }
-          }
-          
-          // Store payment data for the payment page to use
-          localStorage.setItem('pendingPayment', JSON.stringify(paymentData));
-          
-          // Clear pending booking
-          localStorage.removeItem('pendingBooking');
-          setPendingBooking(null);
-          
-          // Show success message
-          toast.success("Đặt phòng thành công! Chuyển đến trang thanh toán...");
-          
-          // Redirect to payment page
-          router.push('/customer/payments?tab=pending');
-        }, 1500);
-      } else {
-        // Real API call would go here
-        const response = await post<{id: number, bookingCode: string}>('Bookings', {
-          roomId: typeof pendingBooking.roomId === 'string' ? parseInt(pendingBooking.roomId) : pendingBooking.roomId,
-          customerId: user?.id,
-          checkInDate: pendingBooking.checkInDate,
-          checkOutDate: pendingBooking.checkOutDate,
-          guests: pendingBooking.guests,
-          totalPrice: pendingBooking.totalPrice
-        });
-        
-        // Update booking list
-        const updatedBookings = await get<Booking[]>(`Bookings/customer/${user?.id}`);
-        setBookings(updatedBookings);
-        
-        // Create payment data
-        const paymentData = {
-          bookingId: response.id,
-          bookingCode: response.bookingCode,
-          roomName: pendingBooking.roomName,
-          checkInDate: pendingBooking.checkInDate,
-          checkOutDate: pendingBooking.checkOutDate,
-          nights: pendingBooking.nights,
-          pricePerNight: pendingBooking.pricePerNight,
-          totalPrice: pendingBooking.totalPrice,
-          services: [],
-          created: new Date().toISOString()
-        };
-        
-        // Get any services the user might have added
-        const storageKey = `booking_services_${String(response.id)}`;
-        const servicesJson = localStorage.getItem(storageKey);
-        if (servicesJson) {
-          try {
-            const services = JSON.parse(servicesJson);
-            paymentData.services = services;
-          } catch (error) {
-            console.error("Error parsing services:", error);
-          }
-        }
-        
-        // Store payment data
-        localStorage.setItem('pendingPayment', JSON.stringify(paymentData));
-        
-        // Clear pending booking
-        localStorage.removeItem('pendingBooking');
-        setPendingBooking(null);
-        
-        toast.success("Đặt phòng thành công! Chuyển đến trang thanh toán...");
-        
-        // Redirect to payment page
-        router.push('/customer/payments?tab=pending');
-      }
-    } catch (error) {
-      console.error("Error confirming booking:", error);
-      toast.error("Có lỗi xảy ra khi xác nhận đặt phòng. Vui lòng thử lại.");
+      // Add to bookings list
+      setBookings(prev => [newBooking.data, ...prev]);
+      
+      toast.success("Đặt phòng thành công!");
+
+      // Clear pending booking
+      localStorage.removeItem('pendingBooking');
+      setPendingBooking(null);
+      
+    } catch (err) {
+      console.error("Error confirming booking:", err);
+      toast.error("Không thể xác nhận đặt phòng. Vui lòng thử lại.");
     }
   }
   

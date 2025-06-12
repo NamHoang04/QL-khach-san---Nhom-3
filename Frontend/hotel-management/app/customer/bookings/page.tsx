@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { get } from "@/lib/api-service"
-import { shouldUseMockData } from "@/lib/config"
+import { get } from "@/lib/api"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import { 
@@ -27,6 +26,50 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { useSearchParams, useRouter } from 'next/navigation'
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+};
+
+interface Room {
+  id: number;
+  roomNumber: string;
+  image: string;
+  description?: string;
+  status: string;
+  roomTypeId: number;
+  roomTypeName: string;
+  price: number;
+  amenities: string[];
+  capacity?: number;
+  rating?: number;
+  reviews?: number;
+}
+
+const mockRooms: Room[] = [
+  {
+    id: 1, roomNumber: '101', image: '', description: 'Tận hưởng không gian sang trọng và tầm nhìn tuyệt đẹp.', status: 'available',
+    roomTypeId: 1, roomTypeName: 'Phòng Deluxe Nhìn Ra Thành Phố', price: 2500000, amenities: ['wifi', 'tv'], capacity: 2, rating: 4.8, reviews: 120
+  },
+  {
+    id: 2, roomNumber: '205', image: '', description: 'Suite rộng rãi với hai phòng ngủ, lý tưởng cho gia đình.', status: 'available',
+    roomTypeId: 2, roomTypeName: 'Suite Gia Đình Rộng Rãi', price: 4200000, amenities: ['wifi', 'tv', 'minibar'], capacity: 4, rating: 4.9, reviews: 95
+  },
+  {
+    id: 3, roomNumber: '302', image: '', description: 'Thư giãn với ban công riêng và tầm nhìn bao quát ra đại dương.', status: 'occupied',
+    roomTypeId: 3, roomTypeName: 'Phòng Premier Hướng Biển', price: 3800000, amenities: ['wifi', 'tv', 'bath'], capacity: 2, rating: 4.7, reviews: 150
+  },
+  {
+    id: 4, roomNumber: '102', image: '', description: 'Phòng tiêu chuẩn tiện nghi, phù hợp cho khách đi công tác.', status: 'available',
+    roomTypeId: 4, roomTypeName: 'Phòng Standard', price: 1800000, amenities: ['wifi'], capacity: 2, rating: 4.5, reviews: 200
+  },
+];
+
+const mockBookings: Booking[] = [
+    { id: 1, bookingCode: 'BK1001', roomId: 2, roomNumber: '205', roomTypeName: 'Suite Gia Đình Rộng Rãi', checkIn: '2024-07-01', checkOut: '2024-07-05', status: 'confirmed' },
+    { id: 2, bookingCode: 'BK1002', roomId: 4, roomNumber: '102', roomTypeName: 'Phòng Standard', checkIn: '2024-07-10', checkOut: '2024-07-12', status: 'completed' },
+];
 
 interface Booking {
   id: number
@@ -44,77 +87,45 @@ type StatusType = 'all' | 'confirmed' | 'pending' | 'completed' | 'cancelled'
 export default function MyBookingsPage() {
   const { user } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [activeStatus, setActiveStatus] = useState<StatusType>('all')
   
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const roomIdToBook = searchParams.get('roomId')
+  const fromSearch = searchParams.get('fromSearch')
+  
+  const [roomToConfirm, setRoomToConfirm] = useState<Room | null>(null)
+  
   useEffect(() => {
-    const fetchBookings = async () => {
-      if (!user?.id) return
-      
-      try {
-        setLoading(true)
-        
-        if (shouldUseMockData()) {
-          // For mock data mode
-          const mockBookings: Booking[] = [
-            {
-              id: 1,
-              bookingCode: "BK0001",
-              roomId: 101,
-              roomNumber: "101",
-              roomTypeName: "Deluxe King",
-              checkIn: "2023-12-01T14:00:00",
-              checkOut: "2023-12-05T12:00:00",
-              status: "Confirmed"
-            },
-            {
-              id: 2,
-              bookingCode: "BK0002",
-              roomId: 205,
-              roomNumber: "205",
-              roomTypeName: "Suite",
-              checkIn: "2023-12-20T14:00:00",
-              checkOut: "2023-12-25T12:00:00",
-              status: "Pending"
-            },
-            {
-              id: 3,
-              bookingCode: "BK0003",
-              roomId: 310,
-              roomNumber: "310",
-              roomTypeName: "Standard Double",
-              checkIn: "2023-11-10T14:00:00",
-              checkOut: "2023-11-12T12:00:00",
-              status: "Completed"
-            },
-            {
-              id: 4,
-              bookingCode: "BK0004",
-              roomId: 201,
-              roomNumber: "201",
-              roomTypeName: "Premium Ocean View",
-              checkIn: "2023-10-15T14:00:00",
-              checkOut: "2023-10-18T12:00:00",
-              status: "Cancelled"
-            }
-          ]
-          setBookings(mockBookings)
-        } else {
-          // If real API mode
-          const data = await get<Booking[]>(`Bookings/customer/${user.id}`)
-          setBookings(data)
-        }
-      } catch (err) {
-        console.error("Error fetching bookings:", err)
-        setError("Không thể tải dữ liệu đặt phòng. Vui lòng thử lại sau.")
-      } finally {
-        setLoading(false)
-      }
-    }
+    // Simulate fetching existing bookings
+    setBookings(mockBookings);
     
-    fetchBookings()
-  }, [user])
+    // If navigating from search page, find the room to confirm
+    if (roomIdToBook && fromSearch) {
+      const room = mockRooms.find(r => r.id === parseInt(roomIdToBook, 10)) || null;
+      setRoomToConfirm(room);
+    }
+  }, [roomIdToBook, fromSearch])
+  
+  const handleConfirmBooking = () => {
+    if (!roomToConfirm) return;
+    
+    const newBooking: Booking = {
+      id: bookings.length + 3,
+      bookingCode: `BK${1003 + bookings.length}`,
+      roomId: roomToConfirm.id,
+      roomNumber: roomToConfirm.roomNumber,
+      roomTypeName: roomToConfirm.roomTypeName,
+      checkIn: '2024-08-01', // Mock data
+      checkOut: '2024-08-05', // Mock data
+      status: 'pending',
+    };
+    
+    setBookings(prev => [newBooking, ...prev]);
+    setRoomToConfirm(null); // Hide confirmation card
+    router.replace('/customer/bookings'); // Clean URL
+  };
   
   // Get status badge color based on status
   const getStatusColor = (status: string) => {
@@ -203,6 +214,24 @@ export default function MyBookingsPage() {
         </Link>
       </div>
       
+      {roomToConfirm && (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="text-xl text-blue-800">Xác nhận đặt phòng</CardTitle>
+            <CardDescription>Vui lòng xem lại thông tin và xác nhận đặt phòng cho {roomToConfirm.roomTypeName}.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Display room details for confirmation */}
+            <p><strong>Phòng:</strong> {roomToConfirm.roomNumber} - {roomToConfirm.roomTypeName}</p>
+            <p><strong>Giá:</strong> {formatCurrency(roomToConfirm.price)} / đêm</p>
+          </CardContent>
+          <CardFooter className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setRoomToConfirm(null)}>Hủy</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleConfirmBooking}>Xác nhận</Button>
+          </CardFooter>
+        </Card>
+      )}
+      
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold">Đặt phòng của tôi</h1>
@@ -217,14 +246,7 @@ export default function MyBookingsPage() {
         </Link>
       </div>
       
-      {loading ? (
-        <Card>
-          <CardContent className="flex items-center justify-center p-12">
-            <Loader2 className="animate-spin w-8 h-8 text-blue-600" />
-            <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
-          </CardContent>
-        </Card>
-      ) : error ? (
+      {error ? (
         <Card className="border-red-200">
           <CardContent className="p-6">
             <div className="bg-red-50 text-red-600 p-4 rounded-lg text-center">

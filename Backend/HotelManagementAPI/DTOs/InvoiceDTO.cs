@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace HotelManagementAPI.DTOs
 {
@@ -15,6 +16,7 @@ namespace HotelManagementAPI.DTOs
         public string? Status { get; set; }
         public string? PaymentMethod { get; set; }
         public string? Notes { get; set; }
+        public List<InvoiceServiceDTO>? Services { get; set; }
     }
 
     public class InvoiceDetailDTO
@@ -36,6 +38,7 @@ namespace HotelManagementAPI.DTOs
         public string? Status { get; set; }
         public string? PaymentMethod { get; set; }
         public string? Notes { get; set; }
+        public List<InvoiceServiceDTO>? Services { get; set; }
     }
 
     public class CreateInvoiceDTO
@@ -47,6 +50,7 @@ namespace HotelManagementAPI.DTOs
         public string? Status { get; set; } = "Chờ thanh toán";
         public string? PaymentMethod { get; set; } = "Tiền mặt";
         public string? Notes { get; set; }
+        public List<BookingServiceDTO>? Services { get; set; }
     }
 
     public class UpdateInvoiceDTO
@@ -60,5 +64,13 @@ namespace HotelManagementAPI.DTOs
     public class InvoiceStatusUpdateDTO
     {
         public string Status { get; set; } = string.Empty;
+    }
+
+    public class InvoiceServiceDTO
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int Quantity { get; set; }
     }
 } 

@@ -59,31 +59,27 @@ export const login = async (username: string, password: string, userType?: strin
     if (response.data?.success && response.data?.data?.token) {
       const token = response.data.data.token;
       
+      // Decode token để lấy thông tin user
+      const decodedToken: any = jwtDecode(token);
+
+      const userToStore: User = {
+        id: decodedToken.sub, // Lấy ID từ 'sub' của token
+        username: decodedToken.name,
+        role: decodedToken['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
+        email: response.data.data.user?.email, // Giữ lại email từ response
+      };
+      
       // Lưu token vào sessionStorage
       sessionStorage.setItem('token', token);
       
-      // Lưu thông tin user vào sessionStorage
-      if (response.data.data.user) {
-        sessionStorage.setItem('user', JSON.stringify(response.data.data.user));
-      }
+      // Lưu thông tin user đã được chuẩn hóa vào sessionStorage
+      sessionStorage.setItem('user', JSON.stringify(userToStore));
+      sessionStorage.setItem('userRole', userToStore.role);
 
       // Lưu token vào cookie với các options phù hợp và thời gian hết hạn
       const expiryDate = new Date();
       expiryDate.setTime(expiryDate.getTime() + (24 * 60 * 60 * 1000)); // 24 giờ
       document.cookie = `token=${token}; path=/; expires=${expiryDate.toUTCString()}; secure; samesite=strict`;
-
-      // Decode token để lấy role
-      try {
-        const role = getRoleFromToken(token);
-        if (role) {
-          sessionStorage.setItem('userRole', role);
-          console.log('User role saved:', role);
-        } else {
-          console.error('Failed to extract role from token');
-        }
-      } catch (error) {
-        console.error('Error processing token:', error);
-      }
     }
 
     return response.data;

@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { get } from "@/lib/api-service"
-import { shouldUseMockData } from "@/lib/config"
+import { get, post } from "@/lib/api"
 import { 
   Utensils, 
   Car, 
@@ -42,6 +41,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useSaved } from "@/lib/saved-context"
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
 
 interface Service {
   id: number
@@ -67,7 +71,6 @@ interface BookedService {
 export default function ServicesPage() {
   const router = useRouter()
   const [services, setServices] = useState<Service[]>([])
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [activeCategory, setActiveCategory] = useState<string>("all")
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -94,67 +97,18 @@ export default function ServicesPage() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        setLoading(true)
-        
-        if (shouldUseMockData()) {
-          // Mock service data
-          const mockServices: Service[] = [
-            { 
-              id: 1, 
-              name: "Buffet sáng", 
-              price: 250000,
-              childPrice: 200000,
-              description: "Buffet sáng với đa dạng món ăn Á - Âu, phù hợp cho cả gia đình",
-              category: "food",
-              imageUrl: "https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf",
-              unitType: "người"
-            },
-            { 
-              id: 2, 
-              name: "Đưa đón sân bay", 
-              price: 400000,
-              childPrice: 200000,
-              description: "Dịch vụ đưa đón sân bay sang trọng, thoải mái với xe riêng",
-              category: "transport",
-              imageUrl: "https://images.unsplash.com/photo-1549194898-0cb3ed2fa95e",
-              unitType: "người"
-            },
-            { 
-              id: 3, 
-              name: "Spa & Massage", 
-              price: 850000, 
-              description: "Dịch vụ spa và massage cao cấp, giúp thư giãn và làm đẹp",
-              category: "spa",
-              imageUrl: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874",
-              unitType: "người"
-            },
-            { 
-              id: 4, 
-              name: "Dịch vụ giặt ủi", 
-              price: 150000, 
-              description: "Dịch vụ giặt và ủi quần áo chuyên nghiệp, đảm bảo sạch sẽ và phẳng phiu",
-              category: "laundry",
-              imageUrl: "https://images.unsplash.com/photo-1545173168-9f1947eebb7f",
-              unitType: "kg"
-            }
-          ]
-          setServices(mockServices)
-        } else {
           // Real API call
-          const data = await get<Service[]>('Services')
+        const response = await get<Service[]>('Services')
           // Add default categories if not present in API response
-          const processedData = data.map(service => ({
+        const processedData = response.data.map((service: Service) => ({
             ...service,
             category: service.category || getRandomCategory(),
             imageUrl: service.imageUrl || getPlaceholderImage(service.name)
           }))
           setServices(processedData)
-        }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error fetching services:", err)
         setError("Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.")
-      } finally {
-        setLoading(false)
       }
     }
     
@@ -216,37 +170,19 @@ export default function ServicesPage() {
   }
   
   // Fetch active bookings
-  const fetchActiveBookings = () => {
+  const fetchActiveBookings = async () => {
     setLoadingBookings(true)
     
-    // In a real app, you would fetch this from the API
-    if (shouldUseMockData()) {
-      // Mock booking data
-      const mockBookings = [
-        { id: 1, roomName: "Phòng Deluxe King - 101" },
-        { id: 2, roomName: "Phòng Premium Double - 203" },
-        { id: 3, roomName: "Suite Biển - 305" },
-      ]
-      
-      setTimeout(() => {
-        setBookings(mockBookings)
-        setLoadingBookings(false)
-      }, 500)
-    } else {
-      // Real API call would go here
-      get<Array<{id: string | number, roomName: string}>>('Bookings/active')
-        .then(data => {
-          setBookings(data)
-        })
-        .catch(err => {
-          console.error("Error fetching bookings:", err)
-          toast.error("Không thể tải danh sách đặt phòng.")
-        })
-        .finally(() => {
-          setLoadingBookings(false)
-        })
+    try {
+      const response = await get<Array<{id: string | number, roomName: string}>>('bookings');
+      setBookings(response.data);
+    } catch (err: any) {
+      console.error("Error fetching bookings:", err);
+      toast.error("Không thể tải danh sách đặt phòng.");
+    } finally {
+      setLoadingBookings(false);
     }
-  }
+  };
   
   // Confirm service booking - only for variable quantity services
   const confirmServiceBooking = () => {
@@ -258,71 +194,21 @@ export default function ServicesPage() {
   }
   
   // Add service to selected booking
-  const addServiceToBooking = () => {
+  const addServiceToBooking = async () => {
     if (!selectedService || !selectedBookingId) {
       toast.error("Vui lòng chọn phòng đã đặt để thêm dịch vụ")
       return
     }
     
-    const bookedService: BookedService = {
-      id: selectedService.id,
-      name: selectedService.name,
-      price: selectedService.price,
+    const payload = {
+      bookingId: parseInt(selectedBookingId),
+      serviceId: selectedService.id,
       quantity: quantity,
-      childQuantity: selectedService.childPrice ? childQuantity : undefined,
-      totalPrice: (selectedService.price * quantity) + 
-                 (selectedService.childPrice ? selectedService.childPrice * childQuantity : 0)
+      childQuantity: selectedService.childPrice ? childQuantity : 0,
     }
-    
-    // Get current booking services from localStorage
-    const storageKey = `booking_services_${selectedBookingId}`
-    const existingServicesJson = localStorage.getItem(storageKey)
-    let services: BookedService[] = []
-    
-    if (existingServicesJson) {
-      try {
-        services = JSON.parse(existingServicesJson)
-        
-        // For fixed quantity services, check if it already exists - don't allow duplicates
-        if (selectedService.isFixedQuantity) {
-          const existingIndex = services.findIndex(s => s.id === bookedService.id)
-          if (existingIndex >= 0) {
-            toast.error(`Dịch vụ "${selectedService.name}" đã được đặt và không thể đặt thêm`)
-            setBookingDialogOpen(false)
-            setSelectedService(null)
-            setSelectedBookingId("")
-            return
-          }
-          // Add new fixed service
-          services.push(bookedService)
-        } else {
-          // For regular services, update quantity if exists
-          const existingIndex = services.findIndex(s => s.id === bookedService.id)
-          
-          if (existingIndex >= 0) {
-            // Update existing service
-            services[existingIndex] = {
-              ...services[existingIndex],
-              quantity: services[existingIndex].quantity + bookedService.quantity,
-              totalPrice: services[existingIndex].price * (services[existingIndex].quantity + bookedService.quantity)
-            }
-          } else {
-            // Add new service
-            services.push(bookedService)
-          }
-        }
-      } catch (err) {
-        console.error("Error parsing services from localStorage:", err)
-        // Start fresh if there's an error
-        services = [bookedService]
-      }
-    } else {
-      // No existing services, add the new one
-      services = [bookedService]
-    }
-    
-    // Save back to localStorage
-    localStorage.setItem(storageKey, JSON.stringify(services))
+
+    try {
+      await post('/BookingServices', payload)
     
     // Close dialogs
     setDialogOpen(false)
@@ -340,7 +226,7 @@ export default function ServicesPage() {
         <CheckCircle className="w-5 h-5 mr-2 text-green-500" />
         <div>
           <p className="font-medium">Đã thêm dịch vụ vào đặt phòng</p>
-          <p className="text-sm">{bookedService.name}{!selectedService.isFixedQuantity && ` (${quantity} người lớn${selectedService.childPrice ? `, ${childQuantity} trẻ em` : ''})`}</p>
+            <p className="text-sm">{selectedService.name}{!selectedService.isFixedQuantity && ` (${quantity} người lớn${selectedService.childPrice ? `, ${childQuantity} trẻ em` : ''})`}</p>
         </div>
       </div>
     ), {
@@ -349,6 +235,10 @@ export default function ServicesPage() {
         onClick: () => router.push(`/customer/booking/${selectedBookingId}`)
       }
     })
+    } catch (error) {
+      console.error("Error booking service:", error)
+      toast.error("Đã có lỗi xảy ra khi đặt dịch vụ. Vui lòng thử lại.")
+    }
   }
   
   return (
@@ -362,63 +252,38 @@ export default function ServicesPage() {
     
       <h1 className="text-2xl font-bold mb-6">Dịch vụ</h1>
       
-      {/* Categories selector */}
-      <div className="mb-8 overflow-x-auto pb-2 -mx-1">
-        <div className="flex space-x-2">
-          {categories.map((category) => {
-            const CategoryIcon = category.icon
-            return (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.id)}
-                className={`
-                  flex items-center space-x-2 px-4 py-2 rounded-full whitespace-nowrap
-                  ${activeCategory === category.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
-                `}
-              >
-                <CategoryIcon className="w-4 h-4" />
-                <span>{category.name}</span>
-              </button>
-            )
-          })}
-        </div>
+      <p className="text-gray-500 mt-2 mb-6">Khám phá các dịch vụ đa dạng của chúng tôi, từ ẩm thực, spa đến đưa đón.</p>
+      
+      {/* Category Tabs */}
+      <div className="mb-6">
+        <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            {categories.map((category) => (
+              <TabsTrigger key={category.id} value={category.id}>
+                <category.icon className="mr-2 h-4 w-4" />
+                {category.name}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
       
-      {loading ? (
-        <div className="flex items-center justify-center p-12 bg-white rounded-lg shadow-sm border">
-          <Loader2 className="animate-spin w-8 h-8 text-blue-600" />
-          <span className="ml-2 text-gray-600">Đang tải dịch vụ...</span>
-        </div>
-      ) : error ? (
-        <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-lg text-center shadow-sm">
+      {error ? (
+        <div className="bg-red-50 text-red-700 p-4 rounded-lg flex items-center">
+          <AlertTriangle className="mr-2" />
           {error}
         </div>
-      ) : filteredServices.length === 0 ? (
-        <div className="bg-white p-8 rounded-lg text-center shadow-sm border">
-          <h3 className="text-xl font-medium text-gray-700 mb-2">Không có dịch vụ nào</h3>
-          <p className="text-gray-500">Không tìm thấy dịch vụ nào trong danh mục này.</p>
-        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredServices.map((service) => (
-            <div key={service.id} className="bg-white rounded-lg overflow-hidden shadow-sm border hover:shadow-md transition">
-              <div className="bg-gray-200 relative" style={{ minHeight: '200px', height: 'auto' }}>
-                {service.imageUrl ? (
-                  <div className="h-full">
+            <div key={service.id} className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col group">
+              <div className="relative">
                     <Image 
-                      src={service.imageUrl} 
+                  src={service.imageUrl || getPlaceholderImage(service.name)}
                       alt={service.name}
                       layout="fill"
                       objectFit="cover"
                     />
-                  </div>
-                ) : (
-                  <div className="h-full flex items-center justify-center bg-blue-100">
-                    <span className="text-blue-600 font-medium">Hình ảnh dịch vụ</span>
-                  </div>
-                )}
                 {/* Save button */}
                 <button 
                   onClick={(e) => toggleSaveService(service, e)}

@@ -124,13 +124,13 @@ export default function AdminCustomersPage() {
             />
             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
-          <Button 
+          {/* <Button 
             className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
             onClick={() => openDialog()}
           >
             <PlusCircle size={18} />
             Thêm khách hàng
-          </Button>
+          </Button> */}
         </div>
 
         <div className="overflow-x-auto">

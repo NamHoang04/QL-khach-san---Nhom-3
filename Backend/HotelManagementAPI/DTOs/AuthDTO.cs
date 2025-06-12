@@ -15,6 +15,10 @@ namespace HotelManagementAPI.DTOs
 
     public class RegisterDTO
     {
+        [Required(ErrorMessage = "Họ và tên không được để trống")]
+        [StringLength(100, ErrorMessage = "Họ và tên không được vượt quá 100 kí tự")]
+        public string FullName { get; set; } = string.Empty;
+        
         [Required(ErrorMessage = "Tên đăng nhập không được để trống")]
         [StringLength(100, ErrorMessage = "Tên đăng nhập không được vượt quá 100 kí tự")]
         public string Username { get; set; } = string.Empty;

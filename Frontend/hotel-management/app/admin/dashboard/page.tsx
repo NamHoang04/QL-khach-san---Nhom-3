@@ -78,7 +78,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Thông tin cá nhân */}
-                        <div className="bg-white rounded-lg shadow-sm p-6">
+                        {/* <div className="bg-white rounded-lg shadow-sm p-6">
                             <h2 className="text-xl font-semibold mb-4">Thông tin cá nhân</h2>
                             <p className="text-gray-600 mb-4">Quản lý thông tin tài khoản</p>
                             <Link 
@@ -87,7 +87,7 @@ export default function AdminDashboard() {
                             >
                                 Xem thông tin <ArrowRight className="ml-2 h-4 w-4" />
                             </Link>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

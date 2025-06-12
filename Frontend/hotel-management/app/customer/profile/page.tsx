@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { get, put } from "@/lib/api-service"
-import { shouldUseMockData } from "@/lib/config"
+import { get, put } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { UserCircle, Phone, Mail, MapPin, ShieldCheck, Loader2 } from "lucide-react"
+import { UserCircle, Phone, Mail, MapPin, ShieldCheck, Loader2, ChevronLeft } from "lucide-react"
 import { toast } from "sonner"
+import Link from "next/link"
 
 interface Customer {
   id: number
@@ -22,6 +22,16 @@ interface Customer {
   identityNumber: string
   address: string
 }
+
+const mockCustomer: Customer = {
+  id: 1,
+  customerCode: 'KH001',
+  fullName: 'Nguyễn Văn An',
+  email: 'nguyen.van.an@example.com',
+  phone: '0987654321',
+  identityNumber: '123456789012',
+  address: '123 Đường ABC, Quận 1, TP. Hồ Chí Minh',
+};
 
 export default function ProfilePage() {
   const { user } = useAuth()
@@ -47,53 +57,20 @@ export default function ProfilePage() {
   })
   
   useEffect(() => {
-    const fetchCustomerData = async () => {
-      if (!user?.id) return
-      
-      try {
-        setLoading(true)
-        
-        if (shouldUseMockData()) {
-          // Use mock data
-          const mockCustomer: Customer = {
-            id: 1,
-            customerCode: "KH00001",
-            fullName: "Nguyễn Văn A",
-            email: "nguyenvana@example.com",
-            phone: "0901234567",
-            identityNumber: "079123456789",
-            address: "123 Đường Nguyễn Huệ, Quận 1, TP.HCM"
-          }
-          setCustomer(mockCustomer)
+    // Simulate fetching customer data
+    setLoading(true);
+    setTimeout(() => {
+      setCustomer(mockCustomer);
           setFormData({
             fullName: mockCustomer.fullName,
-            email: mockCustomer.email,
-            phone: mockCustomer.phone,
-            identityNumber: mockCustomer.identityNumber,
-            address: mockCustomer.address
-          })
-        } else {
-          // Get real data from API
-          const data = await get<Customer>(`Customers/${user.id}`)
-          setCustomer(data)
-          setFormData({
-            fullName: data.fullName,
-            email: data.email || "",
-            phone: data.phone || "",
-            identityNumber: data.identityNumber || "",
-            address: data.address || ""
-          })
-        }
-      } catch (err) {
-        console.error("Error fetching customer data:", err)
-        setError("Không thể tải thông tin khách hàng. Vui lòng thử lại sau.")
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    fetchCustomerData()
-  }, [user])
+        email: mockCustomer.email || "",
+        phone: mockCustomer.phone || "",
+        identityNumber: mockCustomer.identityNumber || "",
+        address: mockCustomer.address || ""
+      });
+      setLoading(false);
+    }, 500); // Simulate network delay
+  }, [user?.id])
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -110,10 +87,10 @@ export default function ProfilePage() {
     
     if (!customer) return
     
+    setSaving(true)
+    // Simulate API call
+    setTimeout(() => {
     try {
-      setSaving(true)
-      
-      // Basic validation
       if (!formData.fullName) {
         toast.error("Vui lòng nhập họ tên")
         return
@@ -123,33 +100,17 @@ export default function ProfilePage() {
         toast.error("Email không hợp lệ")
         return
       }
-      
-      if (shouldUseMockData()) {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000))
         
         // Update local state
-        setCustomer({
-          ...customer,
-          ...formData
-        })
+        setCustomer(prev => prev ? { ...prev, ...formData } : null);
         
         toast.success("Cập nhật thông tin thành công")
-      } else {
-        // Update via API
-        await put(`Customers/${customer.id}`, {
-          ...customer,
-          ...formData
-        })
-        
-        toast.success("Cập nhật thông tin thành công")
-      }
     } catch (err) {
-      console.error("Error updating profile:", err)
       toast.error("Không thể cập nhật thông tin. Vui lòng thử lại sau.")
     } finally {
       setSaving(false)
     }
+    }, 1000)
   }
   
   const handlePasswordUpdate = async (e: React.FormEvent) => {
@@ -157,10 +118,11 @@ export default function ProfilePage() {
     
     if (!customer) return
     
-    try {
       setSaving(true)
       
-      // Validation
+    // Simulate API call
+    setTimeout(() => {
+      try {
       if (!passwordData.currentPassword) {
         toast.error("Vui lòng nhập mật khẩu hiện tại")
         return
@@ -180,58 +142,49 @@ export default function ProfilePage() {
         toast.error("Xác nhận mật khẩu không khớp")
         return
       }
-      
-      if (shouldUseMockData()) {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        
         toast.success("Cập nhật mật khẩu thành công")
         
-        // Reset form
         setPasswordData({
           currentPassword: "",
           newPassword: "",
           confirmPassword: ""
         })
-      } else {
-        // Call API to update password
-        await put(`Customers/${customer.id}/password`, {
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
-        })
-        
-        toast.success("Cập nhật mật khẩu thành công")
-        
-        // Reset form
-        setPasswordData({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: ""
-        })
-      }
     } catch (err) {
-      console.error("Error updating password:", err)
       toast.error("Không thể cập nhật mật khẩu. Vui lòng kiểm tra lại thông tin.")
     } finally {
       setSaving(false)
     }
+    }, 1000);
   }
   
   return (
-    <div className="max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Thông tin cá nhân</h1>
+    <div className="max-w-4xl mx-auto py-8">
+       <div className="flex items-center gap-2 mb-4">
+        <Link href="/customer" className="text-blue-600 hover:underline flex items-center">
+          <ChevronLeft className="h-4 w-4" />
+          <span>Quay lại</span>
+        </Link>
+      </div>
+
+      <h1 className="text-3xl font-bold mb-6">Thông tin cá nhân</h1>
       
       {loading ? (
-        <div className="flex items-center justify-center p-12 bg-white rounded-lg shadow-sm border">
+        <Card>
+          <CardContent className="flex items-center justify-center p-20">
           <Loader2 className="animate-spin w-8 h-8 text-blue-600" />
-          <span className="ml-2 text-gray-600">Đang tải thông tin...</span>
-        </div>
+            <span className="ml-4 text-gray-700">Đang tải thông tin...</span>
+          </CardContent>
+        </Card>
       ) : error ? (
-        <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-lg text-center shadow-sm">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6 text-center text-red-700">
           {error}
-        </div>
+          </CardContent>
+        </Card>
       ) : (
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="mb-8">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="info">Thông tin cá nhân</TabsTrigger>
             <TabsTrigger value="password">Đổi mật khẩu</TabsTrigger>
           </TabsList>
